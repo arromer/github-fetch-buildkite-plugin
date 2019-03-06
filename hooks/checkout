@@ -20,7 +20,7 @@ main() {
   git clean -ffxdq
   git fetch -v origin HEAD
   git config remote.origin.fetch
-  git fetch -v --prune origin "refs/remotes/origin/${BUILDKITE_BRANCH}"
+  git fetch -v --prune origin "${BUILDKITE_BRANCH}"
   git checkout -f "${BUILDKITE_COMMIT}"
 }
 
