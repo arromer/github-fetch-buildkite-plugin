@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+set -eu
+
+main() {
+  if [[ -z "${BUILDKITE_REPO:-}" ]]; then
+    echo "error: BUILDKITE_REPO not set"
+    exit 1
+  fi
+  if [[ -z "${BUILDKITE_BRANCH:-}" ]]; then
+    echo "error: BUILDKITE_BRANCH not set"
+    exit 1
+  fi
+  if [[ -z "${BUILDKITE_COMMIT:-}" ]]; then
+    echo "error: BUILDKITE_COMMIT not set"
+    exit 1
+  fi
+
+  git remote set-url origin "${BUILDKITE_REPO}"
+  git clean -ffxdq
+  git fetch -v origin HEAD
+  git config remote.origin.fetch
+  git fetch -v --prune origin "refs/remotes/origin/${BUILDKITE_BRANCH}"
+  git checkout -f "${BUILDKITE_COMMIT}"
+}
+
+main "$@"
