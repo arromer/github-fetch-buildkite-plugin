@@ -2,6 +2,26 @@
 
 set -eu
 
+# Runs a command until it succeeds, up to 3 times.
+#   $1: retry delay in seconds
+#   $@: the command and argument list
+retry3() {
+  local retry_delay_sec="$1"
+  shift
+  "$@" \
+      || (set -e; echo "retrying in ${retry_delay_sec} sec: $*"; sleep "${retry_delay_sec}"; "$@") \
+      || (set -e; echo "retrying in ${retry_delay_sec} sec: $*"; sleep "${retry_delay_sec}"; "$@")
+}
+
+do_checkout() {
+  git remote set-url origin "${BUILDKITE_REPO}"
+  git clean -ffxdq
+  git fetch -v origin HEAD
+  git config remote.origin.fetch
+  git fetch -v --prune origin "${BUILDKITE_BRANCH}"
+  git checkout -f "${BUILDKITE_COMMIT}"
+}
+
 main() {
   if [[ -z "${BUILDKITE_REPO:-}" ]]; then
     echo "error: BUILDKITE_REPO not set"
@@ -16,12 +36,7 @@ main() {
     exit 1
   fi
 
-  git remote set-url origin "${BUILDKITE_REPO}"
-  git clean -ffxdq
-  git fetch -v origin HEAD
-  git config remote.origin.fetch
-  git fetch -v --prune origin "${BUILDKITE_BRANCH}"
-  git checkout -f "${BUILDKITE_COMMIT}"
+  retry3 10 do_checkout
 }
 
 main "$@"
