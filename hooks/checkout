@@ -2,26 +2,47 @@
 
 set -eu
 
-main() {
-  if [[ -z "${BUILDKITE_REPO:-}" ]]; then
-    echo "error: BUILDKITE_REPO not set"
+# Checks if an env var is set
+# Arguments:
+# $1: var name
+check_set() {
+  local name="$1"
+  if [[ -z "${!name:-}" ]]; then
+    echo "ERROR: ${name} not set"
     exit 1
   fi
-  if [[ -z "${BUILDKITE_BRANCH:-}" ]]; then
-    echo "error: BUILDKITE_BRANCH not set"
-    exit 1
-  fi
-  if [[ -z "${BUILDKITE_COMMIT:-}" ]]; then
-    echo "error: BUILDKITE_COMMIT not set"
-    exit 1
-  fi
+}
 
-  git remote set-url origin "${BUILDKITE_REPO}"
+checkout() {
   git clean -ffxdq
   git fetch -v origin HEAD
   git config remote.origin.fetch
   git fetch -v --prune origin "${BUILDKITE_BRANCH}"
   git checkout -f "${BUILDKITE_COMMIT}"
+}
+
+clean_checkout_dir() {
+  rm -rf "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+  mkdir -p "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+  cd "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+}
+
+clone() {
+  # git clone needs an empty directory
+  clean_checkout_dir
+  git clone "${BUILDKITE_REPO}" .
+}
+
+main() {
+  check_set BUILDKITE_REPO
+  check_set BUILDKITE_BRANCH
+  check_set BUILDKITE_COMMIT
+  check_set BUILDKITE_BUILD_CHECKOUT_PATH
+
+  if [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" ]]; then
+    clone
+  fi
+  checkout
 }
 
 main "$@"
