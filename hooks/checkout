@@ -39,16 +39,10 @@ main() {
   check_set BUILDKITE_COMMIT
   check_set BUILDKITE_BUILD_CHECKOUT_PATH
 
-  local checkout_status=0
-  checkout || checkout_status=$?
-
-  if [[ "${checkout_status}" -ne 0 ]]; then
-    echo "checkout failed"
-    # if checkout fails, then clone and try checkout again
-    # if checkout fails again after clone, fail the script
+  if [[ ! -d .git ]]; then
     clone
-    checkout
   fi
+  checkout
 }
 
 main "$@"
