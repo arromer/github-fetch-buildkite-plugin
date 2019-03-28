@@ -33,6 +33,14 @@ clone() {
   git clone "${BUILDKITE_REPO}" .
 }
 
+setup_git_lfs() {
+  if [[ "${BUILDKITE_REPO}" =~ .*github\.com.* ]]; then
+    # Workaround for GitHub git-lfs API rate limit error:
+    # https://github.com/git-lfs/git-lfs/issues/2133#issuecomment-292557138
+    git config "lfs.https://github.com/${BUILDKITE_REPO#git@github.com:}/info/lfs.access" basic
+  fi
+}
+
 main() {
   check_set BUILDKITE_REPO
   check_set BUILDKITE_BRANCH
@@ -41,6 +49,9 @@ main() {
 
   if [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" ]]; then
     clone
+  fi
+  if command -v git-lfs; then
+    setup_git_lfs
   fi
   checkout
 }
