@@ -2,6 +2,15 @@
 
 set -eu
 
+TMP_DIR=$(mktemp -d)
+
+cleanup() {
+  info "Cleaning up"
+  rm -rf "${TMP_DIR}"
+}
+
+trap cleanup EXIT
+
 # Checks if an env var is set
 # Arguments:
 # $1: var name
@@ -11,6 +20,24 @@ check_set() {
     echo "ERROR: ${name} not set"
     exit 1
   fi
+}
+
+copy_checkout_from_s3() {
+  local s3_url="$1"
+
+  clean_checkout_dir
+
+  local checkout
+
+  # find most recent checkout
+  checkout=$(aws s3 ls "${s3_url}/" \
+      | (sort -r -k 4 || true) \
+      | head -n1 \
+      | awk '{print $4}'
+  )
+  aws s3 cp "${s3_url}/${checkout}" "${TMP_DIR}/${checkout}"
+
+  tar -zxf "${TMP_DIR}/${checkout}"
 }
 
 checkout() {
@@ -48,7 +75,11 @@ main() {
   check_set BUILDKITE_BUILD_CHECKOUT_PATH
 
   if [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" ]]; then
-    clone
+    if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
+      copy_checkout_from_s3 "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}"
+    else
+      clone
+    fi
   fi
   if command -v git-lfs; then
     setup_git_lfs
