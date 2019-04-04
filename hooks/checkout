@@ -67,6 +67,14 @@ main() {
   check_set BUILDKITE_COMMIT
   check_set BUILDKITE_BUILD_CHECKOUT_PATH
 
+  local git_lfs_skip_smudge_was_set=true
+  (env | grep --quiet GIT_LFS_SKIP_SMUDGE=) || git_lfs_skip_smudge_was_set=false
+  local old_git_lfs_skip_smudge="${GIT_LFS_SKIP_SMUDGE:-}"
+
+  if ! command -v git-lfs; then
+    export GIT_LFS_SKIP_SMUDGE=1
+    echo >&2 "git-lfs not installed, skipping lfs"
+  fi
   if [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" ]]; then
     if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
       copy_checkout_from_s3 "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}"
@@ -78,6 +86,12 @@ main() {
     setup_git_lfs
   fi
   checkout
+
+  if [[ "${git_lfs_skip_smudge_was_set}" == "true" ]]; then
+    export GIT_LFS_SKIP_SMUDGE="${old_git_lfs_skip_smudge}"
+  else
+    unset GIT_LFS_SKIP_SMUDGE
+  fi
 }
 
 main "$@"
