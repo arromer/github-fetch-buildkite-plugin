@@ -75,7 +75,9 @@ main() {
     export GIT_LFS_SKIP_SMUDGE=1
     echo >&2 "git-lfs not installed, skipping lfs"
   fi
-  if [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" ]]; then
+  # If the lock file exists it's probably because a previous job was killed while checking out the
+  # repo, in which case it might be corrupted.
+  if [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" || -f ".git/index.lock" ]]; then
     if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
       copy_checkout_from_s3 "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}"
     else
