@@ -38,7 +38,7 @@ checkout() {
   git fetch -v origin HEAD
   git config remote.origin.fetch
   git fetch -v --prune origin "${BUILDKITE_BRANCH}"
-  if [[ "${BUILDKITE_COMMIT}" == "HEAD" ]]; then
+  if [[ -z "${BUILDKITE_COMMIT:-}" || "${BUILDKITE_COMMIT}" == "HEAD" ]]; then
     git checkout -f FETCH_HEAD
   else
     git checkout -f "${BUILDKITE_COMMIT}"
