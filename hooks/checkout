@@ -34,6 +34,7 @@ copy_checkout_from_s3() {
 }
 
 checkout() {
+  git reset --hard
   git clean -ffxdq
   git fetch -v origin HEAD
   git config remote.origin.fetch
