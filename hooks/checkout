@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 
-set -eu
+set -euo pipefail
+
+# The maximum amount of time (in seconds) that a remote Git operation (fetch, pull, push) can take.
+# If not specified by the user, no timeout will be applied to Git remote operations.
+GIT_REMOTE_TIMEOUT="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT:-0}"
+
+# Here is the exit code to be returned by this script when a remote Git operations times out.
+# Having a specific exit code for these scenarions allows to configure Buildkite pipelines to retry
+# the whole step without hiding underlying issues.
+# See: https://buildkite.com/docs/pipelines/command-step#automatic-retry-attributes
+#
+# If not specified by the user, it defaults to 110 which is the standard exit code for connection timeout.
+GIT_REMOTE_TIMEOUT_EXIT_CODE="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT_EXIT_CODE:-110}"
 
 # Checks if an env var is set
 # Arguments:
@@ -13,20 +25,39 @@ check_set() {
   fi
 }
 
+# Checks for failed exit codes returned by a timeout command.
+# If the underlying command fails due to timeout, this function stops the current execution returning either the
+# TIMEOUT exit code (124) or the override value provided by the caller.
+# In any other non-timeout failure scenarios, the current execution is stopped but the underlying command's exit
+# code is returned unmodified.
+# Arguments:
+#   $1: The exit code returned by the timeout command.
+#   $2: The exit code to be returned when the underlying command times out.
+check_timeout_exit_code() {
+  local exit_code="$1"
+  local timeout_exit_code_override="${2:-}"
+  if [[ "${exit_code}" -eq 124 && -n "${timeout_exit_code_override}" ]]; then
+    exit "${timeout_exit_code_override}"
+  elif [[ "${exit_code}" -ne 0 ]]; then
+    exit "${exit_code}"
+  fi
+}
+
 copy_checkout_from_s3() {
   local s3_url="$1"
+  local checkout
 
   clean_checkout_dir
 
-  local checkout
-
-  # find most recent checkout
+  # Find the most recent checkout in S3.
   checkout=$(aws s3 ls "${s3_url}/" \
       | (sort -r -k 4 || true) \
       | head -n1 \
       | awk '{print $4}'
   )
+
   pushd .. >/dev/null
+  # shellcheck disable=SC2064
   trap "rm ${PWD}/${checkout}" EXIT
   aws s3 cp "${s3_url}/${checkout}" "${PWD}/${checkout}"
   tar -zxf "${PWD}/${checkout}"
@@ -34,18 +65,22 @@ copy_checkout_from_s3() {
 }
 
 checkout() {
+  local exit_code=0
   git reset --hard
   git clean -ffxdq
-  git fetch -v origin HEAD
+
+  timeout "${GIT_REMOTE_TIMEOUT}" git fetch -v origin HEAD || exit_code=$?
+  check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
   git config remote.origin.fetch
-  git fetch -v --prune origin "${BUILDKITE_BRANCH}"
+  timeout "${GIT_REMOTE_TIMEOUT}" git fetch -v --prune origin "${BUILDKITE_BRANCH}" || exit_code=$?
+  check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
+
   if [[ -z "${BUILDKITE_COMMIT:-}" || "${BUILDKITE_COMMIT}" == "HEAD" ]]; then
     git checkout -f FETCH_HEAD
   else
     # If the branch doesn't have the commit we want it might have been force
     # pushed in the meantime. Exit with ESTALE to signify the stale branch
     # reference in that case.
-    local exit_code=0
     git checkout -f "${BUILDKITE_COMMIT}" || exit_code=$?
     if [[ "${exit_code}" -eq 128 ]]; then
       exit 116
@@ -62,9 +97,11 @@ clean_checkout_dir() {
 }
 
 clone() {
-  # git clone needs an empty directory
+  local exit_code=0
+  # The git clone operation needs an empty directory.
   clean_checkout_dir
-  git clone "${BUILDKITE_REPO}" .
+  timeout "${GIT_REMOTE_TIMEOUT}" git clone "${BUILDKITE_REPO}" . || exit_code=$?
+  check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
 }
 
 setup_git_lfs() {
