@@ -41,9 +41,9 @@ check_timeout_exit_code() {
   local exit_code="$1"
   local timeout_exit_code_override="${2:-}"
   if [[ "${exit_code}" -eq 124 && -n "${timeout_exit_code_override}" ]]; then
-    exit "${timeout_exit_code_override}"
+    return "${timeout_exit_code_override}"
   elif [[ "${exit_code}" -ne 0 ]]; then
-    exit "${exit_code}"
+    return "${exit_code}"
   fi
 }
 
@@ -85,7 +85,7 @@ checkout() {
   else
     exit_code=0
     timeout "${GIT_REMOTE_TIMEOUT}" git fetch -v origin "${BUILDKITE_COMMIT}" || exit_code=$?
-    check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
+    check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}" || exit_code=$?
     # If the commit isn't there the ref that was pointing to it might have
     # been force pushed in the meantime. Exit with ESTALE to signify the stale
     # branch reference in that case.
@@ -97,9 +97,6 @@ checkout() {
       exit_code=0
       timeout "${GIT_REMOTE_TIMEOUT}" git fetch -v origin "${BUILDKITE_BRANCH}" || exit_code=$?
       check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
-      if [[ "${exit_code}" -ne 0 ]]; then
-        exit "${exit_code}"
-      fi
     fi
     # If the commit doesn't exist the ref that was pointing to it might have
     # been force pushed in the meantime. Exit with ESTALE to signify the stale
