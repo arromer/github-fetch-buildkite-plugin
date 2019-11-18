@@ -18,6 +18,11 @@ GIT_REMOTE_TIMEOUT="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT:-0}"
 # If not specified by the user, it defaults to 110 which is the standard exit code for connection timeout.
 GIT_REMOTE_TIMEOUT_EXIT_CODE="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT_EXIT_CODE:-110}"
 
+# Prints an info line to stdout.
+log_info() {
+  echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: $*"
+}
+
 # Checks if an env var is set
 # Arguments:
 # $1: var name
@@ -51,6 +56,8 @@ copy_checkout_from_s3() {
   local s3_url="$1"
   local checkout
 
+  log_info "Getting checkout from S3"
+
   clean_checkout_dir
 
   # Find the most recent checkout in S3.
@@ -66,9 +73,13 @@ copy_checkout_from_s3() {
   aws s3 cp "${s3_url}/${checkout}" "${PWD}/${checkout}"
   tar -zxf "${PWD}/${checkout}"
   popd >/dev/null
+
+  log_info "Copying from S3 done"
 }
 
 checkout() {
+  log_info "Starting checkout"
+
   local exit_code
   git reset --hard
   git clean -ffxdq
@@ -109,6 +120,7 @@ checkout() {
       exit "${exit_code}"
     fi
   fi
+  log_info "Checkout done"
 }
 
 clean_checkout_dir() {
@@ -118,12 +130,14 @@ clean_checkout_dir() {
 }
 
 clone() {
+  log_info "Cloning repo from github"
   local exit_code
   # The git clone operation needs an empty directory.
   clean_checkout_dir
   exit_code=0
   timeout "${GIT_REMOTE_TIMEOUT}" git clone "${BUILDKITE_REPO}" . || exit_code=$?
   check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
+  log_info "Cloning from github done"
 }
 
 setup_git_lfs() {
