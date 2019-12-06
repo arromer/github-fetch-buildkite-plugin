@@ -18,8 +18,8 @@ GIT_REMOTE_TIMEOUT="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT:-0}"
 # If not specified by the user, it defaults to 110 which is the standard exit code for connection timeout.
 GIT_REMOTE_TIMEOUT_EXIT_CODE="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT_EXIT_CODE:-110}"
 
-# List of config parameters to pass to Git commands
-GIT_CONFIG=()
+# URL for access to the repository
+GIT_REPO="${BUILDKITE_PLUGIN_GITHUB_FETCH_URL_INSTEADOF:-${BUILDKITE_REPO}}"
 
 # Prints an info line to stdout.
 log_info() {
@@ -91,14 +91,14 @@ checkout() {
 
   if [[ -z "${BUILDKITE_COMMIT:-}" || "${BUILDKITE_COMMIT}" == "HEAD" ]]; then
     exit_code=0
-    timeout "${GIT_REMOTE_TIMEOUT}" git "${GIT_CONFIG[@]}" fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
+    timeout "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
     check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
-    git "${GIT_CONFIG[@]}" checkout -f FETCH_HEAD
+    git checkout -f FETCH_HEAD
   elif git cat-file -e "${BUILDKITE_COMMIT}"; then
-    git "${GIT_CONFIG[@]}" checkout -f "${BUILDKITE_COMMIT}"
+    git checkout -f "${BUILDKITE_COMMIT}"
   else
     exit_code=0
-    timeout "${GIT_REMOTE_TIMEOUT}" git "${GIT_CONFIG[@]}" fetch -v --no-tags origin "${BUILDKITE_COMMIT}" || exit_code=$?
+    timeout "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_COMMIT}" || exit_code=$?
     check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}" || exit_code=$?
     # If the commit isn't there the ref that was pointing to it might have
     # been force pushed in the meantime. Exit with ESTALE to signify the stale
@@ -109,14 +109,14 @@ checkout() {
     # being advertised. In that case fetch the branch instead.
     elif [[ "${exit_code}" -ne 0 ]]; then
       exit_code=0
-      timeout "${GIT_REMOTE_TIMEOUT}" git "${GIT_CONFIG[@]}" fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
+      timeout "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
       check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
     fi
     # If the commit doesn't exist the ref that was pointing to it might have
     # been force pushed in the meantime. Exit with ESTALE to signify the stale
     # branch reference in that case.
     exit_code=0
-    git "${GIT_CONFIG[@]}" checkout -f "${BUILDKITE_COMMIT}" || exit_code=$?
+    git checkout -f "${BUILDKITE_COMMIT}" || exit_code=$?
     if [[ "${exit_code}" -eq 128 ]]; then
       exit 116
     elif [[ "${exit_code}" -ne 0 ]]; then
@@ -138,7 +138,7 @@ clone() {
   # The git clone operation needs an empty directory.
   clean_checkout_dir
   exit_code=0
-  timeout "${GIT_REMOTE_TIMEOUT}" git "${GIT_CONFIG[@]}" clone "${BUILDKITE_REPO}" . || exit_code=$?
+  timeout "${GIT_REMOTE_TIMEOUT}" git clone "${GIT_REPO}" . || exit_code=$?
   check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
   log_info "Cloning from github done"
 }
@@ -157,13 +157,13 @@ main() {
   check_set BUILDKITE_COMMIT
   check_set BUILDKITE_BUILD_CHECKOUT_PATH
 
+  # set git repo but keep the LFS URL
+  git remote set-url origin "${GIT_REPO}"
+  git config lfs.url "${BUILDKITE_REPO}"
+
   local git_lfs_skip_smudge_was_set=true
   (env | grep --quiet GIT_LFS_SKIP_SMUDGE=) || git_lfs_skip_smudge_was_set=false
   local old_git_lfs_skip_smudge="${GIT_LFS_SKIP_SMUDGE:-}"
-
-  if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_URL_INSTEADOF:-}" ]]; then
-    GIT_CONFIG+=(-c "url.${BUILDKITE_PLUGIN_GITHUB_FETCH_URL_INSTEADOF}.insteadOf=ssh://git@github.com")
-  fi
 
   if ! command -v git-lfs; then
     export GIT_LFS_SKIP_SMUDGE=1
