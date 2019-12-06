@@ -158,7 +158,10 @@ main() {
   check_set BUILDKITE_BUILD_CHECKOUT_PATH
 
   # set git repo but keep the LFS URL
+  echo "setting repo origin to ${GIT_REPO}"
   git remote set-url origin "${GIT_REPO}"
+
+  echo "setting LFS URL to ${BUILDKITE_REPO}"
   git config lfs.url "${BUILDKITE_REPO}"
 
   local git_lfs_skip_smudge_was_set=true
