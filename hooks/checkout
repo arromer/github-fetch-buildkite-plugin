@@ -191,6 +191,11 @@ main() {
   else
     unset GIT_LFS_SKIP_SMUDGE
   fi
+
+  # set git repo back to its original value
+  echo "setting repo origin to ${BUILDKITE_REPO}"
+  git remote set-url origin "${BUILDKITE_REPO}"
+
 }
 
 main "$@"
