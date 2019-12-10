@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Checks if an env var is set
+# Arguments:
+# $1: var name
+check_set() {
+  local name="$1"
+  if [[ -z "${!name:-}" ]]; then
+    echo "ERROR: ${name} not set"
+    exit 1
+  fi
+}
+
+main() {
+  check_set BUILDKITE_REPO
+
+  if [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" == "true" ]]; then
+    # set git repo back to its original value
+    echo "setting repo origin to ${BUILDKITE_REPO}"
+    git remote set-url origin "${BUILDKITE_REPO}"
+  fi
+}
+
+main "$@"

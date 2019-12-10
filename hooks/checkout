@@ -157,13 +157,6 @@ main() {
   check_set BUILDKITE_COMMIT
   check_set BUILDKITE_BUILD_CHECKOUT_PATH
 
-  # set git repo but keep the LFS URL
-  echo "setting repo origin to ${GIT_REPO}"
-  git remote set-url origin "${GIT_REPO}"
-
-  echo "setting LFS URL to ${BUILDKITE_REPO}"
-  git config lfs.url "${BUILDKITE_REPO}"
-
   local git_lfs_skip_smudge_was_set=true
   (env | grep --quiet GIT_LFS_SKIP_SMUDGE=) || git_lfs_skip_smudge_was_set=false
   local old_git_lfs_skip_smudge="${GIT_LFS_SKIP_SMUDGE:-}"
@@ -191,11 +184,6 @@ main() {
   else
     unset GIT_LFS_SKIP_SMUDGE
   fi
-
-  # set git repo back to its original value
-  echo "setting repo origin to ${BUILDKITE_REPO}"
-  git remote set-url origin "${BUILDKITE_REPO}"
-
 }
 
 main "$@"
