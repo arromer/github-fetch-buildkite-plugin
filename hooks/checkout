@@ -181,6 +181,8 @@ main() {
   else
     unset GIT_LFS_SKIP_SMUDGE
   fi
+
+  buildkite-agent meta-data set "checkout_success" 0 --job "${BUILDKITE_JOB_ID}"
 }
 
 main "$@"
