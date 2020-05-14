@@ -94,6 +94,11 @@ checkout() {
   elif git cat-file -e "${BUILDKITE_COMMIT}"; then
     git checkout -f "${BUILDKITE_COMMIT}"
   else
+    # full commit sha is required
+    if [[ ! "${BUILDKITE_COMMIT}" =~ [0-9a-f]{40} ]]; then
+      log_info "Commit SHA ${BUILDKITE_COMMIT} is not valid. Full SHA is required."
+      exit 1
+    fi
     exit_code=0
     timeout "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_COMMIT}" || exit_code=$?
     check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}" || exit_code=$?
