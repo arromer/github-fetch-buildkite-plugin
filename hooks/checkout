@@ -84,6 +84,11 @@ checkout() {
   git reset --hard
   git clean -ffxdq
 
+  # Check the current state to make sure we start from a clean working tree.
+  # This does both "refresh the index and updating the cached stat information"
+  # as per `man git-status` **BACKGROUND REFRESH**.
+  git status
+
   git config remote.origin.fetch
 
   if [[ -z "${BUILDKITE_COMMIT:-}" || "${BUILDKITE_COMMIT}" == "HEAD" ]]; then
@@ -151,6 +156,9 @@ setup_git_lfs() {
     # https://github.com/git-lfs/git-lfs/issues/2133#issuecomment-292557138
     git config "lfs.https://github.com/${BUILDKITE_REPO#git@github.com:}/info/lfs.access" basic
   fi
+  # make sure that the lfs hooks & filters are installed locally in the repo
+  # in case they have not been installed in the S3 copy
+  git lfs install --local --force
 }
 
 main() {
@@ -163,7 +171,7 @@ main() {
   (env | grep --quiet GIT_LFS_SKIP_SMUDGE=) || git_lfs_skip_smudge_was_set=false
   local old_git_lfs_skip_smudge="${GIT_LFS_SKIP_SMUDGE:-}"
 
-  if ! command -v git-lfs; then
+  if ! command -v git-lfs >/dev/null; then
     export GIT_LFS_SKIP_SMUDGE=1
     echo >&2 "git-lfs not installed, skipping lfs"
   fi
@@ -176,7 +184,7 @@ main() {
       clone
     fi
   fi
-  if command -v git-lfs; then
+  if command -v git-lfs >/dev/null; then
     setup_git_lfs
   fi
   checkout
