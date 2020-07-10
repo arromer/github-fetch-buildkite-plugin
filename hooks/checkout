@@ -18,6 +18,12 @@ GIT_REMOTE_TIMEOUT="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT:-0}"
 # If not specified by the user, it defaults to 110 which is the standard exit code for connection timeout.
 GIT_REMOTE_TIMEOUT_EXIT_CODE="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT_EXIT_CODE:-110}"
 
+# Set to `true` forces a fresh clone from the remote to initialize the local copy for the first time
+# on the agent.
+#
+# Otherwise it will re-use a cached copy from S3 for the first time or re-use the local repository.
+BUILDKITE_CLEAN_CHECKOUT="${BUILDKITE_CLEAN_CHECKOUT:-false}"
+
 # Prints an info line to stdout.
 log_info() {
   echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: $*"
@@ -150,6 +156,25 @@ clone() {
   log_info "Cloning from github done"
 }
 
+initialize_local_repo() {
+  # Force a fresh clone.
+  if [[ "${BUILDKITE_CLEAN_CHECKOUT}" == "true" ]]; then
+    clone
+  # If there is no local repository or the index is in a locked state.
+  # When the lock file exists it's probably because a previous job was killed while checking out the
+  # repo, in which case it might be corrupted.
+  elif [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" || -f ".git/index.lock" ]]; then
+    if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
+      copy_checkout_from_s3 "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}"
+    else
+      # When S3 was not configured, fallback to Git clone
+      clone
+    fi
+  else
+    log_info "Using existing local repository"
+  fi
+}
+
 setup_git_lfs() {
   if [[ "${BUILDKITE_REPO}" =~ .*github\.com.* ]]; then
     # Workaround for GitHub git-lfs API rate limit error:
@@ -175,18 +200,13 @@ main() {
     export GIT_LFS_SKIP_SMUDGE=1
     echo >&2 "git-lfs not installed, skipping lfs"
   fi
-  # If the lock file exists it's probably because a previous job was killed while checking out the
-  # repo, in which case it might be corrupted.
-  if [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" || -f ".git/index.lock" ]]; then
-    if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
-      copy_checkout_from_s3 "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}"
-    else
-      clone
-    fi
-  fi
+
+  initialize_local_repo
+
   if command -v git-lfs >/dev/null; then
     setup_git_lfs
   fi
+
   checkout
 
   if [[ "${git_lfs_skip_smudge_was_set}" == "true" ]]; then
