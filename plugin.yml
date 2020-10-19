@@ -3,4 +3,12 @@ description: Fetchs a branch from a github repository
 author: https://github.com/arromer
 requirements:
   - buildkite-agent
+configuration:
+  properties:
+    s3_url:
+      type: string
+    app_id:
+      type: number
+    app_secret:
+      type: string
 public: true
