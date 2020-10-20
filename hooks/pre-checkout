@@ -2,6 +2,23 @@
 
 set -euo pipefail
 
+export_canva_origin_url() {
+  echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: starting pre-checkout"
+  local origin_url
+  local s3_path
+  echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: calling SSM param"
+  origin_url="$(aws ssm get-parameter \
+      --name "${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM}"\
+      --query "Parameter.Value"\
+      --output text\
+      --region "us-east-1")"
+  if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
+    s3_path="$(echo "${origin_url}" | tr /.:@ _ )"
+    export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${s3_path}"
+  fi
+  export BUILDKITE_REPO="${origin_url}"
+}
+
 export_buildkite_repo() {
   local payload
   payload=$(jq -n --arg AppID "${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_ID}" \
@@ -26,7 +43,13 @@ export_buildkite_repo() {
   export BUILDKITE_REPO="https://x-access-token:${token}@github.com/${BUILDKITE_REPO#*@github.com:}"
 }
 
+
 main() {
+  if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM:-}" ]]; then
+    export_canva_origin_url
+  else
+    echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: ssm param not configured skipping"
+  fi
   if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_ID:-}" ]] && [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_SECRET:-}" ]]; then
     export_buildkite_repo
   fi
