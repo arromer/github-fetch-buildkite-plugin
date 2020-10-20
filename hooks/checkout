@@ -210,8 +210,6 @@ main() {
     setup_git_lfs
   fi
 
-  git remote set-url origin "${BUILDKITE_REPO}"
-
   checkout
 
   if [[ "${git_lfs_skip_smudge_was_set}" == "true" ]]; then
