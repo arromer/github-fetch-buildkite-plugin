@@ -11,7 +11,7 @@ export_buildkite_repo() {
   local out_file
   out_file=$(mktemp)
   # shellcheck disable=SC2064
-  trap "rm ${out_file}" EXIT
+  trap "rm '${out_file}'" EXIT
 
   AWS_PAGER='' aws lambda invoke \
       --region us-east-1 \
