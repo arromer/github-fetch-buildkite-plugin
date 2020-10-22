@@ -2,11 +2,15 @@
 
 set -euo pipefail
 
+# Prints an info line to stdout.
+log_info() {
+  echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: $*"
+}
+
 export_canva_origin_url() {
-  echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: starting pre-checkout"
   local origin_url
   local s3_path
-  echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: calling SSM param"
+  log_info "calling SSM param"
   origin_url="$(aws ssm get-parameter \
       --name "${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM}"\
       --query "Parameter.Value"\
@@ -20,6 +24,7 @@ export_canva_origin_url() {
 }
 
 export_buildkite_repo() {
+  log_info "starting pre-checkout"
   local payload
   payload=$(jq -n --arg AppID "${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_ID}" \
             --arg SecretId "${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_SECRET}" \
