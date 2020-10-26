@@ -16,9 +16,10 @@ export_canva_origin_url() {
       --query "Parameter.Value"\
       --output text\
       --region "us-east-1")"
+  base="$(basename ${origin_url})"
+  repo_dir="${base%.*}"
   if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
-    s3_path="$(echo "${origin_url}" | tr /.:@ _ )"
-    export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${s3_path}"
+    export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${repo_dir}"
   fi
   export BUILDKITE_REPO="${origin_url}"
 }
