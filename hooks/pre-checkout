@@ -20,7 +20,6 @@ print_repo_checkout_path() {
 
 export_canva_origin_url() {
   local origin_url
-  local s3_path
   log_info "calling SSM param"
   origin_url="$(aws ssm get-parameter \
       --name "${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM}"\
@@ -64,7 +63,7 @@ main() {
   if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM:-}" ]]; then
     export_canva_origin_url
   else
-    echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: ssm param not configured skipping"
+    log_info "ssm param not configured skipping"
   fi
   if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_ID:-}" ]] && [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_SECRET:-}" ]]; then
     export_buildkite_repo
