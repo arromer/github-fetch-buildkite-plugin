@@ -7,6 +7,17 @@ log_info() {
   echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: $*"
 }
 
+# Transforms something like git@github.com:Canva/bla.git to canva__bla
+print_repo_checkout_path() {
+  local repo_url="$1"
+  local repo_dir
+  repo_dir=$(grep -Eo '([a-zA-Z0-9-]+\/[a-zA-Z0-9-]+)' <<< "${repo_url}" \
+      | tr '[:upper:]' '[:lower:]' \
+      | sed 's/\//__/g'
+      )
+  echo "${repo_dir}"
+}
+
 export_canva_origin_url() {
   local origin_url
   local s3_path
@@ -17,7 +28,7 @@ export_canva_origin_url() {
       --output text\
       --region "us-east-1")"
   base="$(basename ${origin_url})"
-  repo_dir="${base%.*}"
+  repo_dir="$(print_repo_checkout_path "${origin_url}")"
   if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
     export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${repo_dir}"
   fi
