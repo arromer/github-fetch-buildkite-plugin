@@ -2,7 +2,39 @@
 
 set -euo pipefail
 
+# Prints an info line to stdout.
+log_info() {
+  echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: $*"
+}
+
+# Transforms something like git@github.com:Canva/bla.git to canva__bla
+print_repo_checkout_path() {
+  local repo_url="$1"
+  local repo_dir
+  repo_dir=$(grep -Eo '([a-zA-Z0-9-]+\/[a-zA-Z0-9-]+)' <<< "${repo_url}" \
+      | tr '[:upper:]' '[:lower:]' \
+      | sed 's/\//__/g'
+      )
+  echo "${repo_dir}"
+}
+
+export_canva_origin_url() {
+  local origin_url
+  log_info "calling SSM param"
+  origin_url="$(aws ssm get-parameter \
+      --name "${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM}"\
+      --query "Parameter.Value"\
+      --output text\
+      --region "us-east-1")"
+  repo_dir="$(print_repo_checkout_path "${origin_url}")"
+  if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
+    export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${repo_dir}"
+  fi
+  export BUILDKITE_REPO="${origin_url}"
+}
+
 export_buildkite_repo() {
+  log_info "starting pre-checkout"
   local payload
   payload=$(jq -n --arg AppID "${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_ID}" \
             --arg SecretId "${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_SECRET}" \
@@ -26,7 +58,13 @@ export_buildkite_repo() {
   export BUILDKITE_REPO="https://x-access-token:${token}@github.com/${BUILDKITE_REPO#*@github.com:}"
 }
 
+
 main() {
+  if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM:-}" ]]; then
+    export_canva_origin_url
+  else
+    log_info "ssm param not configured skipping"
+  fi
   if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_ID:-}" ]] && [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_SECRET:-}" ]]; then
     export_buildkite_repo
   fi
