@@ -20,7 +20,7 @@ print_repo_checkout_path() {
 
 export_canva_origin_url() {
   local origin_url
-  log_info "calling SSM param"
+  log_info "calling SSM param ${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM}"
   origin_url="$(aws ssm get-parameter \
       --name "${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM}"\
       --query "Parameter.Value"\
@@ -30,6 +30,8 @@ export_canva_origin_url() {
   if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
     export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${repo_dir}"
   fi
+
+  log_info "Setting remote ${origin_url}"
   export BUILDKITE_REPO="${origin_url}"
 }
 
