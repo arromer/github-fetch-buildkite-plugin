@@ -30,6 +30,8 @@ export_canva_origin_url() {
   if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
     export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${repo_dir}"
   fi
+
+  log_info "Setting remote ${origin_url}"
   export BUILDKITE_REPO="${origin_url}"
 }
 
