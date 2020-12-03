@@ -25,26 +25,24 @@ check_lfs_integrity_at() {
 }
 
 main() {
-    cd "$1"
-    local attr_files="$(get_changed_attr_file)"
+    if [[ ${BUILDKITE_PLUGIN_GITHUB_CHECK_LFS_INTEGRITY:-true} == true ]]; then
+        local TARGET_PATH="${1:-'.'}"
 
-    while read -r attr_file; do
-        local attr_file_path="$(dirname ${attr_file})"
-        local rtn=$(check_lfs_integrity_at "${attr_file_path}")
-        if [[ -n "${rtn}" ]]; then 
-            while read -r broken_file; do
-                echo "${broken_file}"
-            done<<< "${rtn}"
+        cd "${TARGET_PATH}"
+        local attr_files="$(get_changed_attr_file)"
 
-            exit 117
-        fi
-    done<<< "${attr_files}"
+        while read -r attr_file; do
+            local attr_file_path="$(dirname ${attr_file})"
+            local rtn=$(check_lfs_integrity_at "${attr_file_path}")
+            if [[ -n "${rtn}" ]]; then 
+                while read -r broken_file; do
+                    echo "${broken_file}"
+                done<<< "${rtn}"
+
+                exit 117
+            fi
+        done<<< "${attr_files}"
+    fi    
 }
 
-if [[ ${BUILDKITE_PLUGIN_GITHUB_CHECK_LFS_INTEGRITY:-true} == true ]]; then
-    if [[ -n "$1" ]]; then
-        main "$1"
-    else
-        main "."
-    fi
-fi
+main "$@"
