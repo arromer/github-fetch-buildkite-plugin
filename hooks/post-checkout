@@ -24,11 +24,6 @@ check_lfs_integrity_at() {
     set -e
 }
 
-is_array() {
-    local variable_name=$1
-    [[ "$(declare -p $variable_name 2>/dev/null)" =~ "declare -a" ]]
-}
-
 main() {
     cd "$1"
     local attr_files="$(get_changed_attr_file)"
@@ -41,7 +36,7 @@ main() {
                 echo "${broken_file}"
             done<<< "${rtn}"
 
-            exit 1
+            exit 117
         fi
     done<<< "${attr_files}"
 }

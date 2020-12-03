@@ -38,4 +38,5 @@ The plugin accepts the following environment variables to configure its behaviou
 | Exit Code        | Description     
 | ----------- |:-------------------------------------------------------------:
 | 116         | The target Git branch does not contain the specified commit. 
+| 117         | The LFS pointer is broken
       
