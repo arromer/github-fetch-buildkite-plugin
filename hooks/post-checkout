@@ -2,10 +2,12 @@
 
 set -euo pipefail
 
+# get all the updated .gitattributes files on this branch
 get_changed_attr_file() {
     git diff --name-only "$( git merge-base master HEAD )" | grep .gitattributes
 }
 
+# scan all files in the given path and check whether the lfs file uses pointer
 check_lfs_integrity_at() {
     files="$( git ls-files $1 )"
 
@@ -14,7 +16,9 @@ check_lfs_integrity_at() {
         err=false
 
         if [[ -n "$( git check-attr filter $f | grep "filter: lfs" )" ]]; then
-            git cat-file blob "HEAD:$f" 2>1 | git lfs pointer --stdin --file=$f 2>1 > /dev/null || { err=true; false; }
+            git cat-file blob "HEAD:$f" 2>1 | \
+            git lfs pointer --stdin --file=$f 2>1 > /dev/null || \
+            { err=true; false; }
         fi
 
         if [[ ${err} == true ]]; then
@@ -31,6 +35,7 @@ main() {
         cd "${TARGET_PATH}"
         local attr_files="$(get_changed_attr_file)"
 
+        # iterate each path which contains updated .gitattributes file
         while read -r attr_file; do
             local attr_file_path="$(dirname ${attr_file})"
             local rtn=$(check_lfs_integrity_at "${attr_file_path}")

@@ -61,12 +61,17 @@ main() {
     EXPECTED_RESULT="folder2/dummy.jpg"
     setup_test_repo
 
-    if [[ "$(test)" != "${EXPECTED_RESULT}" ]]; then
+    local test_result="$(test)"
+
+    if [[ "${test_result}" != "${EXPECTED_RESULT}" ]]; then
         rm -rf "${TEST_ROOT}"
+        echo "Test failure. The output does not match the expected result:"
+        echo "${test_result}"
         exit 1
     fi
 
     rm -rf "${TEST_ROOT}"
+    echo "Test passed."
 }
 
 main 
