@@ -33,6 +33,11 @@ The plugin accepts the following environment variables to configure its behaviou
     **Note**: This parameter has no effect if `BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT` is undefined or
     set to `0`.
 
+- `BUILDKITE_PLUGIN_GITHUB_CHECK_LFS_INTEGRITY`:
+    - Required: No
+    - Default: true
+    - Description: If true, check the LFS tracked and committed files are pointers
+
 ## Exit Codes
 
 | Exit Code        | Description     
