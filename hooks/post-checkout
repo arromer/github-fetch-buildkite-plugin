@@ -47,7 +47,9 @@ main() {
                 exit 117
             fi
         done<<< "${attr_files}"
-    fi    
+    else
+        echo "LFS integrity check is disabled."
+    fi
 }
 
 main "$@"

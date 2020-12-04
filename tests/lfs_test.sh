@@ -53,25 +53,50 @@ setup_test_repo() {
     git push origin master
 }
 
-test() {
-    ${REPO_DIR}/hooks/post-checkout "${TEST_ROOT}/_temp_test"
-}
+test_check_enable() {
+    EXPECTED_RESULT1="folder2/dummy.jpg"
 
-main() {
-    EXPECTED_RESULT="folder2/dummy.jpg"
-    setup_test_repo
+    export BUILDKITE_PLUGIN_GITHUB_CHECK_LFS_INTEGRITY=true    
+    local test_result=$(${REPO_DIR}/hooks/post-checkout "${TEST_ROOT}/_temp_test")
 
-    local test_result="$(test)"
-
-    if [[ "${test_result}" != "${EXPECTED_RESULT}" ]]; then
+    if [[ "${test_result}" != "${EXPECTED_RESULT1}" ]]; then
         rm -rf "${TEST_ROOT}"
         echo "Test failure. The output does not match the expected result:"
         echo "${test_result}"
         exit 1
     fi
 
-    rm -rf "${TEST_ROOT}"
-    echo "Test passed."
+    echo "Test passed."    
 }
 
-main 
+test_check_disable() {
+    EXPECTED_RESULT2="LFS integrity check is disabled."
+
+    export BUILDKITE_PLUGIN_GITHUB_CHECK_LFS_INTEGRITY=false
+    local test_result=$(${REPO_DIR}/hooks/post-checkout "${TEST_ROOT}/_temp_test")
+
+    if [[ "${test_result}" != "${EXPECTED_RESULT2}" ]]; then
+        rm -rf "${TEST_ROOT}"
+        echo "Test failure. The output does not match the expected result:"
+        echo "${test_result}"
+        exit 1
+    fi
+
+    echo "Test passed."  
+}
+
+run_test() {
+    setup_test_repo
+
+    local result="$($1)"
+    echo "${result}"
+
+    rm -rf "${TEST_ROOT}"
+}
+
+main() {
+    run_test test_check_enable
+    run_test test_check_disable
+}
+
+main
