@@ -57,8 +57,9 @@ test_check_enable() {
     EXPECTED_RESULT1="post-checkout ERROR: LFS integrity is broken.
 post-checkout ERROR: Broken file: folder2/dummy.jpg"
 
-    export BUILDKITE_PLUGIN_GITHUB_CHECK_LFS_INTEGRITY=true    
-    local test_result=$( ${REPO_DIR}/hooks/post-checkout "${TEST_ROOT}/_temp_test" 2>&1 | sed 's/\[.*\] //' )
+    export BUILDKITE_PLUGIN_GITHUB_CHECK_LFS_INTEGRITY=true
+    pushd "${TEST_ROOT}/_temp_test"
+    local test_result=$( ${REPO_DIR}/hooks/post-checkout 2>&1 | sed 's/\[.*\] //' )
 
     if [[ "${test_result}" != "${EXPECTED_RESULT1}" ]]; then
         rm -rf "${TEST_ROOT}"
@@ -68,6 +69,8 @@ post-checkout ERROR: Broken file: folder2/dummy.jpg"
         exit 1
     fi
 
+    popd
+
     echo "Test passed."    
 }
 
@@ -75,7 +78,8 @@ test_check_disable() {
     EXPECTED_RESULT2="LFS integrity check is disabled."
 
     export BUILDKITE_PLUGIN_GITHUB_CHECK_LFS_INTEGRITY=false
-    local test_result=$(${REPO_DIR}/hooks/post-checkout "${TEST_ROOT}/_temp_test")
+    pushd  "${TEST_ROOT}/_temp_test"
+    local test_result=$(${REPO_DIR}/hooks/post-checkout)
 
     if [[ "${test_result}" != *"${EXPECTED_RESULT2}" ]]; then
         rm -rf "${TEST_ROOT}"
@@ -84,6 +88,8 @@ test_check_disable() {
         exit 1
     fi
 
+    popd
+    
     echo "Test passed."  
 }
 
