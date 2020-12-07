@@ -2,6 +2,41 @@
 
 set -euo pipefail
 
+declare -r PROG=$(basename "$0" .sh)
+
+if test -t 1 && hash tput >/dev/null 2>&1; then
+  # We are writing to a terminal
+  declare -r TERM_NORMAL=$(tput sgr0)
+  declare -r TERM_BOLD=$(tput bold)
+  declare -r TERM_MAGENTA=$(tput setaf 5)
+  declare -r TERM_YELLOW=$(tput setaf 3)
+  declare -r TERM_RED=$(tput setaf 1)
+else
+  declare -r TERM_NORMAL=""
+  declare -r TERM_BOLD=""
+  declare -r TERM_MAGENTA=""
+  declare -r TERM_YELLOW=""
+  declare -r TERM_RED=""
+fi
+
+# Prints an info line to stdout.
+log_info() {
+  echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: $*"
+}
+
+uncollapse_section() {
+  if [[ "${BUILDKITE:-}" == "true" ]]; then
+    echo "^^^ +++" >&2
+  fi
+}
+
+# Prints an error to stderr. On BuildKite it also uncollapses the current section.
+# Use this if there's cleanup tasks to be done before exiting the program.
+log_error() {
+  uncollapse_section
+  echo "${TERM_BOLD}${TERM_RED}$(date '+[%Y-%m-%d %H:%M:%S]') ${PROG} ERROR:${TERM_NORMAL}${TERM_RED} $*${TERM_NORMAL}" >&2
+}
+
 # get all the updated .gitattributes files on this branch
 get_changed_attr_file() {
     git diff --name-only "$( git merge-base master HEAD )" | grep .gitattributes
@@ -39,16 +74,17 @@ main() {
         while read -r attr_file; do
             local attr_file_path="$(dirname ${attr_file})"
             local rtn=$(check_lfs_integrity_at "${attr_file_path}")
-            if [[ -n "${rtn}" ]]; then 
+            if [[ -n "${rtn}" ]]; then
+                log_error "LFS integrity is broken."
                 while read -r broken_file; do
-                    echo "${broken_file}"
+                    log_error "Broken file: ${broken_file}"
                 done<<< "${rtn}"
 
                 exit 117
             fi
         done<<< "${attr_files}"
     else
-        echo "LFS integrity check is disabled."
+        log_info "LFS integrity check is disabled."
     fi
 }
 

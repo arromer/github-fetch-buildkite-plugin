@@ -54,15 +54,17 @@ setup_test_repo() {
 }
 
 test_check_enable() {
-    EXPECTED_RESULT1="folder2/dummy.jpg"
+    EXPECTED_RESULT1="post-checkout ERROR: LFS integrity is broken.
+post-checkout ERROR: Broken file: folder2/dummy.jpg"
 
     export BUILDKITE_PLUGIN_GITHUB_CHECK_LFS_INTEGRITY=true    
-    local test_result=$(${REPO_DIR}/hooks/post-checkout "${TEST_ROOT}/_temp_test")
+    local test_result=$( ${REPO_DIR}/hooks/post-checkout "${TEST_ROOT}/_temp_test" 2>&1 | sed 's/\[.*\] //' )
 
     if [[ "${test_result}" != "${EXPECTED_RESULT1}" ]]; then
         rm -rf "${TEST_ROOT}"
         echo "Test failure. The output does not match the expected result:"
         echo "${test_result}"
+        echo "${EXPECTED_RESULT1}"
         exit 1
     fi
 
@@ -75,7 +77,7 @@ test_check_disable() {
     export BUILDKITE_PLUGIN_GITHUB_CHECK_LFS_INTEGRITY=false
     local test_result=$(${REPO_DIR}/hooks/post-checkout "${TEST_ROOT}/_temp_test")
 
-    if [[ "${test_result}" != "${EXPECTED_RESULT2}" ]]; then
+    if [[ "${test_result}" != *"${EXPECTED_RESULT2}" ]]; then
         rm -rf "${TEST_ROOT}"
         echo "Test failure. The output does not match the expected result:"
         echo "${test_result}"
