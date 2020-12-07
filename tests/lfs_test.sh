@@ -55,7 +55,8 @@ setup_test_repo() {
 
 test_check_enable() {
     EXPECTED_RESULT1="post-checkout ERROR: LFS integrity is broken.
-post-checkout ERROR: Broken file: folder2/dummy.jpg"
+post-checkout ERROR: Broken files are:
+post-checkout ERROR:   folder2/dummy.jpg"
 
     export BUILDKITE_PLUGIN_GITHUB_CHECK_LFS_INTEGRITY=true
     pushd "${TEST_ROOT}/_temp_test"
@@ -65,7 +66,6 @@ post-checkout ERROR: Broken file: folder2/dummy.jpg"
         rm -rf "${TEST_ROOT}"
         echo "Test failure. The output does not match the expected result:"
         echo "${test_result}"
-        echo "${EXPECTED_RESULT1}"
         exit 1
     fi
 
@@ -95,11 +95,10 @@ test_check_disable() {
 
 run_test() {
     setup_test_repo
+    trap "rm -rf ${TEST_ROOT}" RETURN SIGINT SIGTERM
 
     local result="$($1)"
     echo "${result}"
-
-    rm -rf "${TEST_ROOT}"
 }
 
 main() {

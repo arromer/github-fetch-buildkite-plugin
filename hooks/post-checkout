@@ -39,7 +39,8 @@ log_error() {
 
 # get all the updated .gitattributes files on this branch
 get_changed_attr_file() {
-    git diff --name-only "$( git merge-base ${GH_CONTROL_PR_BASE_BRANCH:-master} HEAD )" | grep .gitattributes
+    local base="$( git merge-base ${GH_CONTROL_PR_BASE_BRANCH:-master} HEAD )" 
+    git diff --name-only "${base}" | grep .gitattributes
 }
 
 # scan all files in the given path and check whether the lfs file uses pointer
@@ -61,7 +62,6 @@ check_lfs_integrity_at() {
         fi
 
     done<<< "${files}"
-    set -e
 }
 
 main() {
@@ -75,9 +75,8 @@ main() {
             local rtn="$(check_lfs_integrity_at ${attr_file_path})"
             if [[ -n "${rtn}" ]]; then
                 log_error "LFS integrity is broken."
-                while read -r broken_file; do
-                    log_error "Broken file: ${broken_file}"
-                done<<< "${rtn}"
+                log_error "Broken files are:"
+                log_error "  ${rtn}"
 
                 exit 117
             fi
