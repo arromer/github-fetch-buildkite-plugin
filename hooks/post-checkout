@@ -70,6 +70,8 @@ main() {
 
         local attr_files
         attr_files="$(get_changed_attr_file)"
+        log_info "${GH_CONTROL_PR_BASE_BRANCH:-master}"
+        log_info "$( git merge-base ${GH_CONTROL_PR_BASE_BRANCH:-master} HEAD )" 
         log_info "List of .gitattributes file updated:"
         log_info "  ${attr_files}"
 
