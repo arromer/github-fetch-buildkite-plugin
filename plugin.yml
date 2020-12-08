@@ -11,4 +11,7 @@ configuration:
       type: number
     app_secret:
       type: string
+    check_lfs_integrity:
+      type: boolean
+    
 public: true
