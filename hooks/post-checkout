@@ -84,13 +84,17 @@ main() {
 
         local base="$( git merge-base ${GH_CONTROL_PR_BASE_BRANCH:-master} HEAD )" 
         
-        trap 'catch $? $LINENO' EXIT
+        #trap 'catch $? $LINENO' EXIT
 
         git --no-pager log -10
 
         git diff --name-only ${GH_CONTROL_PR_BASE_BRANCH:-master}... 2>&1
 
         log_info "end of diff"
+
+        git diff --name-only ${GH_CONTROL_PR_BASE_BRANCH:-master}... | grep .gitattributes
+
+        log_info "end of diff2"
 
         attr_files="$(get_changed_attr_file)"
 
