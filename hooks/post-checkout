@@ -39,7 +39,6 @@ log_error() {
 
 # get all the updated .gitattributes files on this branch
 get_changed_attr_file() {
-    #local base="$( git merge-base ${GH_CONTROL_PR_BASE_BRANCH:-master} HEAD )" 
     git diff --name-only ${GH_CONTROL_PR_BASE_BRANCH:-master}... | grep .gitattributes || true
 }
 
@@ -77,31 +76,12 @@ main() {
         log_info "LFS integrity check is enabled."
 
         local attr_files
-
-        log_info "${GH_CONTROL_PR_BASE_BRANCH:-master}"
-        log_info "$( git merge-base ${GH_CONTROL_PR_BASE_BRANCH:-master} HEAD )" 
-        log_info "List of .gitattributes file updated:"
-
-        local base="$( git merge-base ${GH_CONTROL_PR_BASE_BRANCH:-master} HEAD )" 
-        
-        #trap 'catch $? $LINENO' EXIT
-
-        git --no-pager log -10
-
-        git diff --name-only ${GH_CONTROL_PR_BASE_BRANCH:-master}... 2>&1
-
-        log_info "end of diff"
-
-        git diff --name-only ${GH_CONTROL_PR_BASE_BRANCH:-master}... | grep .gitattributes || true
-
-        log_info "end of diff2"
-
         attr_files="$(get_changed_attr_file)"
-
-        log_info ">  >${attr_files}<"
 
         # iterate each path which contains updated .gitattributes file
         if [[ -n "${attr_files}" ]]; then
+          log_info "List of changed .gitattributes file: ${attr_files}"
+
           while read -r attr_file; do
               local attr_file_path
               attr_file_path="$(dirname ${attr_file})"
@@ -121,6 +101,8 @@ main() {
               fi
 
           done<<< "${attr_files}"
+        else
+          log_info "No .gitattributes file is changed on this branch."
         fi
 
     else
