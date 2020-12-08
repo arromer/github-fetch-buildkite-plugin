@@ -68,7 +68,8 @@ main() {
     if [[ ${BUILDKITE_PLUGIN_GITHUB_CHECK_LFS_INTEGRITY:-true} == true ]]; then
         log_info "LFS integrity check is enabled."
 
-        local attr_files="$(get_changed_attr_file)"
+        local attr_files
+        attr_files="$(get_changed_attr_file)"
 
         # iterate each path which contains updated .gitattributes file
         while read -r attr_file; do
