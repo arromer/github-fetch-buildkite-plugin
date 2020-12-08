@@ -86,7 +86,7 @@ main() {
               local attr_file_path
               attr_file_path="$(dirname ${attr_file})"
 
-              log_info "check folder ${attr_file_path}"
+              log_info "Check folder ${attr_file_path}"
 
               local rtn
               rtn="$(check_lfs_integrity_at ${attr_file_path})"

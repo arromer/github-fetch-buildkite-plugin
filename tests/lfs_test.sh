@@ -54,7 +54,11 @@ setup_test_repo() {
 }
 
 test_check_enable() {
-    EXPECTED_RESULT1="post-checkout ERROR: LFS integrity is broken.
+    EXPECTED_RESULT1="INFO: LFS integrity check is enabled.
+INFO: List of changed .gitattributes file: folder2/.gitattributes
+folder3/.gitattributes
+INFO: Check folder folder2
+post-checkout ERROR: LFS integrity is broken.
 post-checkout ERROR: Broken files are:
 post-checkout ERROR:   folder2/dummy.jpg"
 
@@ -66,6 +70,7 @@ post-checkout ERROR:   folder2/dummy.jpg"
         rm -rf "${TEST_ROOT}"
         echo "Test failure. The output does not match the expected result:"
         echo "${test_result}"
+
         exit 1
     fi
 
