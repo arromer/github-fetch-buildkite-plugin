@@ -98,28 +98,30 @@ main() {
 
         attr_files="$(get_changed_attr_file)"
 
-        log_info ">  ${attr_files}"
+        log_info ">  >${attr_files}<"
 
         # iterate each path which contains updated .gitattributes file
-        while read -r attr_file; do
-            local attr_file_path
-            attr_file_path="$(dirname ${attr_file})"
+        if [[ -n "${attr_files}" ]]; then
+          while read -r attr_file; do
+              local attr_file_path
+              attr_file_path="$(dirname ${attr_file})"
 
-            log_info "check folder ${attr_file_path}"
+              log_info "check folder ${attr_file_path}"
 
-            local rtn
-            rtn="$(check_lfs_integrity_at ${attr_file_path})"
-            if [[ -n "${rtn}" ]]; then
-                log_error "LFS integrity is broken."
-                log_error "Broken files are:"
-                log_error "  ${rtn}"
+              local rtn
+              rtn="$(check_lfs_integrity_at ${attr_file_path})"
+              if [[ -n "${rtn}" ]]; then
+                  log_error "LFS integrity is broken."
+                  log_error "Broken files are:"
+                  log_error "  ${rtn}"
 
-                exit 117
-            else
-              log_info "LFS integrity check passed in ${attr_file_path}"
-            fi
+                  exit 117
+              else
+                log_info "LFS integrity check passed in ${attr_file_path}"
+              fi
 
-        done<<< "${attr_files}"
+          done<<< "${attr_files}"
+        fi
 
     else
         log_info "LFS integrity check is disabled."
