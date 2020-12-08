@@ -64,6 +64,14 @@ check_lfs_integrity_at() {
     done<<< "${files}"
 }
 
+catch() {
+  echo "catching!"
+  if [ "$1" != "0" ]; then
+    # error handling goes here
+    echo "Error $1 occurred on $2"
+  fi
+}
+
 main() {
     if [[ ${BUILDKITE_PLUGIN_GITHUB_CHECK_LFS_INTEGRITY:-true} == true ]]; then
         log_info "LFS integrity check is enabled."
@@ -73,6 +81,12 @@ main() {
         log_info "${GH_CONTROL_PR_BASE_BRANCH:-master}"
         log_info "$( git merge-base ${GH_CONTROL_PR_BASE_BRANCH:-master} HEAD )" 
         log_info "List of .gitattributes file updated:"
+
+        local base="$( git merge-base ${GH_CONTROL_PR_BASE_BRANCH:-master} HEAD )" 
+        
+        trap 'catch $? $LINENO' EXIT
+
+        git diff --name-only "${base}" 2>&1
 
         attr_files="$(get_changed_attr_file)"
 
