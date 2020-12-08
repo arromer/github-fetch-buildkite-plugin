@@ -40,7 +40,7 @@ log_error() {
 # get all the updated .gitattributes files on this branch
 get_changed_attr_file() {
     #local base="$( git merge-base ${GH_CONTROL_PR_BASE_BRANCH:-master} HEAD )" 
-    git diff --name-only ${GH_CONTROL_PR_BASE_BRANCH:-master}... | grep .gitattributes
+    git diff --name-only ${GH_CONTROL_PR_BASE_BRANCH:-master}... | grep .gitattributes || true
 }
 
 # scan all files in the given path and check whether the lfs file uses pointer
@@ -92,7 +92,7 @@ main() {
 
         log_info "end of diff"
 
-        git diff --name-only ${GH_CONTROL_PR_BASE_BRANCH:-master}... | grep .gitattributes
+        git diff --name-only ${GH_CONTROL_PR_BASE_BRANCH:-master}... | grep .gitattributes || true
 
         log_info "end of diff2"
 
