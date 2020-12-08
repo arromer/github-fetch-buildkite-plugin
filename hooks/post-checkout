@@ -66,20 +66,29 @@ check_lfs_integrity_at() {
 
 main() {
     if [[ ${BUILDKITE_PLUGIN_GITHUB_CHECK_LFS_INTEGRITY:-true} == true ]]; then
+        log_info "LFS integrity check is enabled."
 
         local attr_files="$(get_changed_attr_file)"
 
         # iterate each path which contains updated .gitattributes file
         while read -r attr_file; do
-            local attr_file_path="$(dirname ${attr_file})"
-            local rtn="$(check_lfs_integrity_at ${attr_file_path})"
+            local attr_file_path
+            attr_file_path="$(dirname ${attr_file})"
+
+            log_info "check folder ${attr_file_path}"
+
+            local rtn
+            rtn="$(check_lfs_integrity_at ${attr_file_path})"
             if [[ -n "${rtn}" ]]; then
                 log_error "LFS integrity is broken."
                 log_error "Broken files are:"
                 log_error "  ${rtn}"
 
                 exit 117
+            else
+              log_info "LFS integrity check passed in ${attr_file_path}"
             fi
+
         done<<< "${attr_files}"
 
     else
