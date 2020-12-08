@@ -70,6 +70,8 @@ main() {
 
         local attr_files
         attr_files="$(get_changed_attr_file)"
+        log_info "List of .gitattributes file updated:"
+        log_info "  ${attr_files}"
 
         # iterate each path which contains updated .gitattributes file
         while read -r attr_file; do
