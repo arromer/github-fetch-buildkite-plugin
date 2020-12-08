@@ -69,10 +69,13 @@ main() {
         log_info "LFS integrity check is enabled."
 
         local attr_files
-        attr_files="$(get_changed_attr_file)"
+
         log_info "${GH_CONTROL_PR_BASE_BRANCH:-master}"
         log_info "$( git merge-base ${GH_CONTROL_PR_BASE_BRANCH:-master} HEAD )" 
         log_info "List of .gitattributes file updated:"
+
+        attr_files="$(get_changed_attr_file)"
+
         log_info "  ${attr_files}"
 
         # iterate each path which contains updated .gitattributes file
