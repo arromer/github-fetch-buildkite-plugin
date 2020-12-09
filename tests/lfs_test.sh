@@ -62,7 +62,7 @@ post-checkout ERROR: LFS integrity is broken.
 post-checkout ERROR: Broken files are:
 post-checkout ERROR:   folder2/dummy.jpg"
 
-    export BUILDKITE_PLUGIN_GITHUB_CHECK_LFS_INTEGRITY=true
+    export BUILDKITE_PLUGIN_GITHUB_FETCH_CHECK_LFS_INTEGRITY=true
     pushd "${TEST_ROOT}/_temp_test"
     local test_result=$( ${REPO_DIR}/hooks/post-checkout 2>&1 | sed 's/\[.*\] //' )
 
@@ -82,7 +82,7 @@ post-checkout ERROR:   folder2/dummy.jpg"
 test_check_disable() {
     EXPECTED_RESULT2="LFS integrity check is disabled."
 
-    export BUILDKITE_PLUGIN_GITHUB_CHECK_LFS_INTEGRITY=false
+    export BUILDKITE_PLUGIN_GITHUB_FETCH_CHECK_LFS_INTEGRITY=false
     pushd  "${TEST_ROOT}/_temp_test"
     local test_result=$(${REPO_DIR}/hooks/post-checkout)
 
