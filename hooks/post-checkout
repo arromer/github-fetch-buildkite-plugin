@@ -75,7 +75,7 @@ main() {
     if [[ ${BUILDKITE_PLUGIN_GITHUB_FETCH_CHECK_LFS_INTEGRITY:-false} == true ]]; then
         log_info "LFS integrity check is enabled."
 
-        log_info "$(git status)"
+        log_info "$(git rev-parse --abbrev-ref HEAD)"
 
         log_info "$(git --no-pager log -8)"
 
