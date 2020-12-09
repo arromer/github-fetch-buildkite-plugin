@@ -75,6 +75,14 @@ main() {
     if [[ ${BUILDKITE_PLUGIN_GITHUB_FETCH_CHECK_LFS_INTEGRITY:-false} == true ]]; then
         log_info "LFS integrity check is enabled."
 
+        log_info "$(git status)"
+
+        log_info "$(git --no-pager log -8)"
+
+        git diff --name-only ${GH_CONTROL_PR_BASE_BRANCH:-master}... | grep .gitattributes || true
+
+        log_info "END_OF_SECTION"
+
         local attr_files
         attr_files="$(get_changed_attr_file)"
 
