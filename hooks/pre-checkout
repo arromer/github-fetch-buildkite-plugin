@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+SSM_PARAM="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_SSM_PARAM:-${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM:-}}"
+
 # Prints an info line to stdout.
 log_info() {
   echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: $*"
@@ -20,9 +22,9 @@ print_repo_checkout_path() {
 
 export_canva_origin_url() {
   local origin_url
-  log_info "calling SSM param ${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM}"
+  log_info "calling SSM param ${SSM_PARAM}"
   origin_url="$(aws ssm get-parameter \
-      --name "${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM}"\
+      --name "${SSM_PARAM}"\
       --query "Parameter.Value"\
       --output text\
       --region "us-east-1")"
@@ -62,7 +64,7 @@ export_buildkite_repo() {
 
 
 main() {
-  if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM:-}" ]]; then
+  if [[ -n "${SSM_PARAM:-}" ]]; then
     export_canva_origin_url
   else
     log_info "ssm param not configured skipping"
