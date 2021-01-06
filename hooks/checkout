@@ -173,6 +173,9 @@ initialize_local_repo() {
   #else
   #  log_info "Using existing local repository"
   #fi
+
+  pwd
+  ls -la
 }
 
 setup_git_lfs() {
