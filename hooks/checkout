@@ -73,11 +73,14 @@ copy_checkout_from_s3() {
       | awk '{print $4}'
   )
 
+  echo "Original path: $(pwd)"
   pushd .. >/dev/null
   # shellcheck disable=SC2064
   trap "rm ${PWD}/${checkout}" EXIT
   aws s3 cp "${s3_url}/${checkout}" "${PWD}/${checkout}"
   tar -zxf "${PWD}/${checkout}"
+  echo "Untar path: $(pwd)"
+  ls -la
   popd >/dev/null
 
   log_info "Copying from S3 done"
@@ -174,7 +177,7 @@ initialize_local_repo() {
   #  log_info "Using existing local repository"
   #fi
 
-  pwd
+  echo "Path after checkout: $(pwd)"
   ls -la
 }
 
