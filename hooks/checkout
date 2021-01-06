@@ -158,21 +158,21 @@ clone() {
 
 initialize_local_repo() {
   # Force a fresh clone.
-  if [[ "${BUILDKITE_CLEAN_CHECKOUT}" == "true" ]]; then
-    clone
+  #if [[ "${BUILDKITE_CLEAN_CHECKOUT}" == "true" ]]; then
+  #  clone
   # If there is no local repository or the index is in a locked state.
   # When the lock file exists it's probably because a previous job was killed while checking out the
   # repo, in which case it might be corrupted.
-  elif [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" || -f ".git/index.lock" ]]; then
+  #elif [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" || -f ".git/index.lock" ]]; then
     if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
       copy_checkout_from_s3 "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}"
     else
       # When S3 was not configured, fallback to Git clone
       clone
     fi
-  else
-    log_info "Using existing local repository"
-  fi
+  #else
+  #  log_info "Using existing local repository"
+  #fi
 }
 
 setup_git_lfs() {
