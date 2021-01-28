@@ -101,9 +101,9 @@ checkout() {
     exit_code=0
     timeout "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
     check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
-    git checkout -f FETCH_HEAD
+    GIT_TRACE=1 GIT_CURL_VERBOSE=1 git checkout -f FETCH_HEAD
   elif git cat-file -e "${BUILDKITE_COMMIT}"; then
-    git checkout -f "${BUILDKITE_COMMIT}"
+    GIT_TRACE=1 GIT_CURL_VERBOSE=1 git checkout -f "${BUILDKITE_COMMIT}"
   else
     # full commit sha is required
     if [[ ! "${BUILDKITE_COMMIT}" =~ [0-9a-f]{40} ]]; then
@@ -129,7 +129,7 @@ checkout() {
     # been force pushed in the meantime. Exit with ESTALE to signify the stale
     # branch reference in that case.
     exit_code=0
-    git checkout -f "${BUILDKITE_COMMIT}" || exit_code=$?
+    GIT_TRACE=1 GIT_CURL_VERBOSE=1 git checkout -f "${BUILDKITE_COMMIT}" || exit_code=$?
     if [[ "${exit_code}" -eq 128 ]]; then
       exit 116
     elif [[ "${exit_code}" -ne 0 ]]; then
