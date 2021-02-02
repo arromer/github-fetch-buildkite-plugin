@@ -49,9 +49,11 @@ export_buildkite_repo() {
   # shellcheck disable=SC2064
   trap "rm '${out_file}'" EXIT
 
+  # when running aws cli v2, --cli-binary-format raw-in-base64-out is required
   AWS_PAGER='' aws lambda invoke \
       --region us-east-1 \
       --function-name github-app-token \
+      --cli-binary-format raw-in-base64-out \
       --payload "${payload}" \
       "${out_file}"
 
