@@ -1,5 +1,5 @@
 name: Github Fetch
-description: Fetchs a branch from a github repository
+description: Fetches a branch from a github repository
 author: https://github.com/arromer
 requirements:
   - buildkite-agent
