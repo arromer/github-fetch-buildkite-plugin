@@ -3,6 +3,8 @@
 set -euo pipefail
 
 SSM_PARAM="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_SSM_PARAM:-${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM:-}}"
+GITHUB_APP_ID="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_APP_ID:-${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_ID:${GITHUB_APP_ID:-}}}"
+GITHUB_APP_SECRET="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_APP_SECRET:-${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_SECRET:${GITHUB_APP_SECRET:-}}}"
 
 # Prints an info line to stdout.
 log_info() {
@@ -40,8 +42,8 @@ export_canva_origin_url() {
 export_buildkite_repo() {
   log_info "starting pre-checkout"
   local payload
-  payload=$(jq -n --arg AppID "${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_ID}" \
-            --arg SecretId "${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_SECRET}" \
+  payload=$(jq -n --arg AppID "${GITHUB_APP_ID}" \
+            --arg SecretId "${GITHUB_APP_SECRET}" \
             '{$AppID, $SecretId}')
 
   local out_file
@@ -71,7 +73,7 @@ main() {
   else
     log_info "ssm param not configured skipping"
   fi
-  if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_ID:-}" ]] && [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_SECRET:-}" ]]; then
+  if [[ -n "${GITHUB_APP_ID:-}" ]] && [[ -n "${GITHUB_APP_SECRET:-}" ]]; then
     export_buildkite_repo
   fi
 }
