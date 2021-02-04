@@ -96,6 +96,7 @@ checkout() {
   git status
 
   git config remote.origin.fetch
+  git config advice.detachedHead false
 
   if [[ -z "${BUILDKITE_COMMIT:-}" || "${BUILDKITE_COMMIT}" == "HEAD" ]]; then
     exit_code=0
