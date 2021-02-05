@@ -40,6 +40,36 @@ check_set() {
   fi
 }
 
+
+# Works like GNU timeout, but implementing it here lets it run on macOS agents.
+# Mostly copied from here: https://stackoverflow.com/a/24413646
+timeout() {
+  local -r duration=$1
+  shift
+  local -r cmd=( "$@" )
+
+  # Run in a subshell to avoid job control messages
+  (
+    "${cmd[@]}" &
+    child=$!
+    # Avoid default notification in non-interactive shell for SIGTERM
+    trap -- "" SIGTERM
+    (
+      sleep "$duration"
+      kill $child 2> /dev/null
+    ) &
+    wait "$child"
+  )
+
+  # Return 124 if a timeout occurred, or the exit code of the command.
+  local -r rc=$?
+  if [[ "$rc" -eq 143 ]]; then
+    return 124
+  else
+    return "$rc"
+  fi
+}
+
 # Checks for failed exit codes returned by a timeout command.
 # If the underlying command fails due to timeout, this function stops the current execution returning either the
 # TIMEOUT exit code (124) or the override value provided by the caller.
