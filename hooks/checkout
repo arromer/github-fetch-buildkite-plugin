@@ -38,6 +38,8 @@ check_set() {
     echo "ERROR: ${name} not set"
     exit 1
   fi
+
+  echo "check_set: ${name}=${!name}"
 }
 
 # Checks for failed exit codes returned by a timeout command.
