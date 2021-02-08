@@ -1,0 +1,124 @@
+diff --git a/production/buildkite/pipelines/canva-web-build/pipeline.ts b/production/buildkite/pipelines/canva-web-build/pipeline.ts
+index 6a948267e6fd..d380873b9eaa 100644
+--- a/production/buildkite/pipelines/canva-web-build/pipeline.ts
++++ b/production/buildkite/pipelines/canva-web-build/pipeline.ts
+@@ -269,38 +269,38 @@ export async function getPipeline(args: PipelineArgs): Promise<Pipeline> {
+       generateCanvaBuildTrigger.bind(null, env));
+ 
+   const greenBlockingSteps = [
+-    await checkEngines(args, env),
+-    await checkBazelDependencies(args),
+-    await checkBazelFiles(args),
+-    await buildAllBazel(args, env),
+-    ...packageGroupPipelineTriggerSteps,
+-    await checkAppOpenApiCodegen(args),
+-    await checkProtogen(args, env),
+-    await checkProtofication(args),
+-    await checkOwners(args),
++    // await checkEngines(args, env),
++    // await checkBazelDependencies(args),
++    // await checkBazelFiles(args),
++    // await buildAllBazel(args, env),
++    // ...packageGroupPipelineTriggerSteps,
++    // await checkAppOpenApiCodegen(args),
++    // await checkProtogen(args, env),
++    // await checkProtofication(args),
++    // await checkOwners(args),
+     await checkLfs(args),
+-    await checkFlags(args, env),
+-    await checkJooq(args),
+-    await checkLockedFiles(args),
+-    await checkMigrations(args),
+-    await shellcheck(args, shellFileFinder),
+-    await blackFormatter(args, pythonFileFinder, blackImage),
+-    await eslint(args),
+-    await compileJsCfe(args),
+-    await compileJsWebclient(args),
+-    await testJsApi(args),
+-    await testJsCfeModule(args),
+-    await testJsCfeScript(args),
+-    await testJsWebclient(args),
+-    await testPipelineGenerators(args),
+-    await checkTests(args, env),
+-    await checkProperties(args, env),
+-    backend,
+-    frontend,
+-    ...annotatedTestSteps,
+-    await testSelenium({ ...rest, ghControlUserEnv }, [backend, frontend], env),
+-    ...await getE2ETriggerSteps(args, env, ghControlUserEnv, [backend, frontend]),
+-    ...await getIOSWebXTriggerSteps(args, env, ghControlUserEnv, [backend, frontend]),
++    // await checkFlags(args, env),
++    // await checkJooq(args),
++    // await checkLockedFiles(args),
++    // await checkMigrations(args),
++    // await shellcheck(args, shellFileFinder),
++    // await blackFormatter(args, pythonFileFinder, blackImage),
++    // await eslint(args),
++    // await compileJsCfe(args),
++    // await compileJsWebclient(args),
++    // await testJsApi(args),
++    // await testJsCfeModule(args),
++    // await testJsCfeScript(args),
++    // await testJsWebclient(args),
++    // await testPipelineGenerators(args),
++    // await checkTests(args, env),
++    // await checkProperties(args, env),
++    // backend,
++    // frontend,
++    // ...annotatedTestSteps,
++    // await testSelenium({ ...rest, ghControlUserEnv }, [backend, frontend], env),
++    // ...await getE2ETriggerSteps(args, env, ghControlUserEnv, [backend, frontend]),
++    // ...await getIOSWebXTriggerSteps(args, env, ghControlUserEnv, [backend, frontend]),
+   ];
+ 
+ 
+diff --git a/production/test/check_lfs.sh b/production/test/check_lfs.sh
+index 3a3b67b030a9..e271b6bcf85a 100755
+--- a/production/test/check_lfs.sh
++++ b/production/test/check_lfs.sh
+@@ -27,18 +27,31 @@ exit_handler() {
+ 
+     temp="$(jq --arg code "${last_error_code}" '.exitcode=$code' <<< "${temp}")"
+     cat <<< "${temp}" > "${log_file_name}"
+-  fi
+ 
+-  aws lambda invoke \
++    aws lambda invoke \
++        --function-name write-infra-logs \
++        --payload "$(cat "${log_file_name}")" \
++        --region us-east-1 \
++        "${WORK_DIR}/blk_upload_log.json" \
++    || \
++    aws lambda invoke \
+       --function-name write-infra-logs \
+-      --payload "$(cat "${log_file_name}")" \
++      --payload "{ \"event_type\": \"check-lfs\", \"result\": \"upload_fail\" }" \
+       --region us-east-1 \
+-      "${WORK_DIR}/blk_upload_log.json" || true
++      "${WORK_DIR}/blk_upload_log.json" \
++    || \
++    true
++  fi
+ 
+   buildkite-agent artifact upload "${log_file_name}" || true
+   buildkite-agent artifact upload "${WORK_DIR}/blk_upload_log.json" || true
+ 
+   rm -rf "${WORK_DIR}"
++
++  if [[ "${last_error_code}" -ne 0 ]]; then
++    exit 1
++  fi
++
+   exit 0
+ }
+ 
+@@ -167,8 +180,7 @@ main() {
+             # compare with content in file system
+             git lfs pointer --stdin --file="${changed_file}" > /dev/null 2>&1 || \
+             (log_error "File ${changed_file} LFS integrity is broken."; append_check_error "${changed_file}"; mark_failed) || \
+-            true
+-
++              log_info "LFS integrity check completed with failure."; false
+       else
+         log_info "Skip LFS check for file ${changed_file}"
+         append_timestamp_log "${changed_file}" "normal"
