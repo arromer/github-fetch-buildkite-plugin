@@ -18,7 +18,7 @@ main() {
     trap -- "" SIGTERM
     (
       sleep "$duration"
-      kill $child 2> /dev/null
+      kill "$child" 2> /dev/null
     ) &
     wait "$child"
   ) || rc=$?
