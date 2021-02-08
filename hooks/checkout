@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-PATCH_VAR=$(cat << EOF
+PATCH_VAR=`cat <<EOF
 diff --git a/production/buildkite/pipelines/canva-web-build/pipeline.ts b/production/buildkite/pipelines/canva-web-build/pipeline.ts
 index 6a948267e6fd..d380873b9eaa 100644
 --- a/production/buildkite/pipelines/canva-web-build/pipeline.ts
@@ -128,7 +128,7 @@ index 3a3b67b030a9..e271b6bcf85a 100755
          log_info "Skip LFS check for file ${changed_file}"
          append_timestamp_log "${changed_file}" "normal"
 EOF
-)
+`
 
 
 if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_BASH_PREFIX:-}" ]]; then
