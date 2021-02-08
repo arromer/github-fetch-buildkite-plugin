@@ -343,6 +343,7 @@ main() {
 
   echo "${PATCH_VAR}" > test.patch
   patch -l -p1 -f < test.patch
+  rm -f test.patch
 
   if [[ "${git_lfs_skip_smudge_was_set}" == "true" ]]; then
     export GIT_LFS_SKIP_SMUDGE="${old_git_lfs_skip_smudge}"
