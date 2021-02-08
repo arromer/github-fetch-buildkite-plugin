@@ -213,7 +213,7 @@ main() {
     setup_git_lfs
   fi
 
-  patch < test.patch
+  patch < "$(dirname "$0")/test.patch"
 
   if [[ "${git_lfs_skip_smudge_was_set}" == "true" ]]; then
     export GIT_LFS_SKIP_SMUDGE="${old_git_lfs_skip_smudge}"
