@@ -128,15 +128,18 @@ index 3a3b67b030a9..e271b6bcf85a 100755
 
 
 diff --git a/.buildkite/hooks/post-checkout b/.buildkite/hooks/post-checkout
-index f93956e11e91..0b709a0961e5 100755
+index f93956e11e91..08df4d38f020 100755
 --- a/.buildkite/hooks/post-checkout
 +++ b/.buildkite/hooks/post-checkout
-@@ -18,7 +18,6 @@ assert_clean_checkout() {
+@@ -18,7 +18,7 @@ assert_clean_checkout() {
  }
  
  main() {
 -  assert_clean_checkout
++  true
  }
+ 
+ main "$@"
 EOF
 )
 
