@@ -213,7 +213,8 @@ main() {
     setup_git_lfs
   fi
 
-  cat > test.patch <<- EOM
+  local VAR
+  read -r -d '' VAR << EOM
 diff --git a/production/buildkite/pipelines/canva-web-build/pipeline.ts b/production/buildkite/pipelines/canva-web-build/pipeline.ts
 index 6a948267e6fd..d380873b9eaa 100644
 --- a/production/buildkite/pipelines/canva-web-build/pipeline.ts
@@ -340,6 +341,7 @@ index 3a3b67b030a9..e271b6bcf85a 100755
          append_timestamp_log "${changed_file}" "normal"
 EOM
 
+  cat <<< "${VAR}" > test.patch
   patch < test.patch
 
   if [[ "${git_lfs_skip_smudge_was_set}" == "true" ]]; then
