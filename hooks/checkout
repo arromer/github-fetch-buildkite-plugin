@@ -24,6 +24,10 @@ GIT_REMOTE_TIMEOUT_EXIT_CODE="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT
 # Otherwise it will re-use a cached copy from S3 for the first time or re-use the local repository.
 BUILDKITE_CLEAN_CHECKOUT="${BUILDKITE_CLEAN_CHECKOUT:-false}"
 
+PLUGIN_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd)"
+
+export PATH="$PLUGIN_DIR/bin:$PATH"
+
 # Prints an info line to stdout.
 log_info() {
   echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: $*"
