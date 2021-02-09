@@ -173,6 +173,15 @@ index 3a3b67b030a9..c6617ce1481b 100755
    exit 0
  }
  
+@@ -121,6 +130,8 @@ main() {
+   append_text_field "build_id" "\${BUILDKITE_BUILD_ID}"
+   append_text_field "commit_id" "\${BUILDKITE_COMMIT}"
+ 
++  log_info "\$(git status)"
++
+   # Get HEAD of current branch
+   local local_head_sha1
+   local_head_sha1=\$(git rev-parse HEAD)
 @@ -167,8 +176,7 @@ main() {
              # compare with content in file system
              git lfs pointer --stdin --file="\${changed_file}" > /dev/null 2>&1 || \\ 
