@@ -140,6 +140,21 @@ index f93956e11e91..08df4d38f020 100755
  }
  
  main "$@"
+
+ diff --git a/production/buildkite/_buildkite_pipeline.sh b/production/buildkite/_buildkite_pipeline.sh
+index ec2e4b40df29..54abbf7ed9de 100755
+--- a/production/buildkite/_buildkite_pipeline.sh
++++ b/production/buildkite/_buildkite_pipeline.sh
+@@ -15,7 +15,7 @@ source "\${REPO_DIR}/tools/bash/_logging.sh"
+ # shellcheck source=tools/buildkite/plugins/docker-ecr-auth/_auth.sh
+ source "\${REPO_DIR}/tools/buildkite/plugins/docker-ecr-auth/_auth.sh"
+ 
+-BUILDKITE_GITHUB_CHECKOUT_PLUGIN_VERSION="\${GITHUB_CHECKOUT_PLUGIN_VERSION:-0ae86092625c2e375232cf8a1c7b01f0096059a9}"
++BUILDKITE_GITHUB_CHECKOUT_PLUGIN_VERSION="\${GITHUB_CHECKOUT_PLUGIN_VERSION:-a88d54105ed5f8665287a01c816389598e5e9a77}"
+ # shellcheck disable=SC2034
+ BUILDKITE_GITHUB_CHECKOUT_PLUGIN="arromer/github-fetch#\${BUILDKITE_GITHUB_CHECKOUT_PLUGIN_VERSION}"
+ # shellcheck disable=SC2034
+
 EOF
 )
 
