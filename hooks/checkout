@@ -136,7 +136,7 @@ index cf7cba977aff..9613d3e2800c 100644
  }
 
 diff --git a/production/test/check_lfs.sh b/production/test/check_lfs.sh
-index 3a3b67b030a9..c6617ce1481b 100755
+index 3a3b67b030a9..29e034c6c059 100755
 --- a/production/test/check_lfs.sh
 +++ b/production/test/check_lfs.sh
 @@ -27,18 +27,27 @@ exit_handler() {
@@ -150,13 +150,13 @@ index 3a3b67b030a9..c6617ce1481b 100755
 -      --payload "\$(cat "\${log_file_name}")" \\ 
 -      --region us-east-1 \\ 
 -      "\${WORK_DIR}/blk_upload_log.json" || true
-+    aws lambda invoke \\  
++    aws lambda invoke \\   
 +        --function-name write-infra-logs \\  
-+        --payload "\$(cat "\${log_file_name}")" \\  
-+        --region us-east-1 \\  
-+        "\${WORK_DIR}/blk_upload_log.json" || aws lambda invoke \\ 
++        --payload "\$(cat "\${log_file_name}")" \\   
++        --region us-east-1 \\   
++        "\${WORK_DIR}/blk_upload_log.json" || aws lambda invoke \\  
 +          --function-name write-infra-logs \\ 
-+          --payload "{ \"event_type\": \"check-lfs\", \"result\": \"upload_fail\" }" \\ 
++          --payload "{ \"event_type\": \"check-lfs\", \"result\": \"upload_fail\" }" \  
 +          --region us-east-1 \\ 
 +          "\${WORK_DIR}/blk_upload_log.json" || true 
 +  fi 
@@ -173,16 +173,17 @@ index 3a3b67b030a9..c6617ce1481b 100755
    exit 0
  }
  
-@@ -121,6 +130,8 @@ main() {
-   append_text_field "build_id" "\${BUILDKITE_BUILD_ID}"
-   append_text_field "commit_id" "\${BUILDKITE_COMMIT}"
+@@ -135,7 +144,9 @@ main() {
+   append_text_field "green_id" "\${green_head_sha1}"
  
-+  log_info "\$(git status)"
-+
-   # Get HEAD of current branch
-   local local_head_sha1
-   local_head_sha1=\$(git rev-parse HEAD)
-@@ -167,8 +176,7 @@ main() {
+   local git_log
++  git status
+   git_log=\$(git --no-pager log -10)
++  log_info "\${git_log}"
+   append_text_field "git_log" "\${git_log}"
+ 
+   local changed_files
+@@ -167,8 +178,7 @@ main() {
              # compare with content in file system
              git lfs pointer --stdin --file="\${changed_file}" > /dev/null 2>&1 || \\ 
              (log_error "File \${changed_file} LFS integrity is broken."; append_check_error "\${changed_file}"; mark_failed) || \\ 
@@ -192,9 +193,14 @@ index 3a3b67b030a9..c6617ce1481b 100755
        else
          log_info "Skip LFS check for file \${changed_file}"
          append_timestamp_log "\${changed_file}" "normal"
+@@ -184,3 +194,4 @@ main() {
+ 
+ main "\$@"
+ 
++
+
 EOF
 )
-
 
 set -euo pipefail
 
