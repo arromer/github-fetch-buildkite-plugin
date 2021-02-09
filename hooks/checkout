@@ -1,11 +1,37 @@
 #!/usr/bin/env bash
 
 PATCH_VAR=$(cat <<EOF
+diff --git a/.buildkite/hooks/post-checkout b/.buildkite/hooks/post-checkout
+index f93956e11e91..08df4d38f020 100755
+--- a/.buildkite/hooks/post-checkout
++++ b/.buildkite/hooks/post-checkout
+@@ -18,7 +18,7 @@ assert_clean_checkout() {
+ }
+ 
+ main() {
+-  assert_clean_checkout
++  true
+ }
+ 
+ main "\$@"
+diff --git a/production/buildkite/_buildkite_pipeline.sh b/production/buildkite/_buildkite_pipeline.sh
+index 6d2fcca00699..66c487389554 100755
+--- a/production/buildkite/_buildkite_pipeline.sh
++++ b/production/buildkite/_buildkite_pipeline.sh
+@@ -15,7 +15,7 @@ source "\${REPO_DIR}/tools/bash/_logging.sh"
+ # shellcheck source=tools/buildkite/plugins/docker-ecr-auth/_auth.sh
+ source "\${REPO_DIR}/tools/buildkite/plugins/docker-ecr-auth/_auth.sh"
+ 
+-BUILDKITE_GITHUB_CHECKOUT_PLUGIN_VERSION="\${GITHUB_CHECKOUT_PLUGIN_VERSION:-0ae86092625c2e375232cf8a1c7b01f0096059a9}"
++BUILDKITE_GITHUB_CHECKOUT_PLUGIN_VERSION="\${GITHUB_CHECKOUT_PLUGIN_VERSION:-a88d54105ed5f8665287a01c816389598e5e9a77}"
+ # shellcheck disable=SC2034
+ BUILDKITE_GITHUB_CHECKOUT_PLUGIN="arromer/github-fetch#\${BUILDKITE_GITHUB_CHECKOUT_PLUGIN_VERSION}"
+ # shellcheck disable=SC2034
 diff --git a/production/buildkite/pipelines/canva-web-build/pipeline.ts b/production/buildkite/pipelines/canva-web-build/pipeline.ts
-index 6a948267e6fd..61827714ec67 100644
+index cf7cba977aff..9613d3e2800c 100644
 --- a/production/buildkite/pipelines/canva-web-build/pipeline.ts
 +++ b/production/buildkite/pipelines/canva-web-build/pipeline.ts
-@@ -269,52 +269,52 @@ export async function getPipeline(args: PipelineArgs): Promise<Pipeline> {
+@@ -271,52 +271,52 @@ export async function getPipeline(args: PipelineArgs): Promise<Pipeline> {
        generateCanvaBuildTrigger.bind(null, env));
  
    const greenBlockingSteps = [
@@ -100,7 +126,7 @@ index 6a948267e6fd..61827714ec67 100644
    if (current !== experimental) {
      pipeline.add(await updateCheckpoint(
          { ...rest, env },
-@@ -329,7 +329,7 @@ export async function getPipeline(args: PipelineArgs): Promise<Pipeline> {
+@@ -331,7 +331,7 @@ export async function getPipeline(args: PipelineArgs): Promise<Pipeline> {
          experimental,
      ));
    }
@@ -110,10 +136,8 @@ index 6a948267e6fd..61827714ec67 100644
 +  // pipeline.add(await updateCheckpoint({ ...rest, env }, 'green', greenBlockingSteps, current));
    return pipeline;
  }
-
-
 diff --git a/production/test/check_lfs.sh b/production/test/check_lfs.sh
-index 3a3b67b030a9..7e7843ffee09 100755
+index 3a3b67b030a9..c6617ce1481b 100755
 --- a/production/test/check_lfs.sh
 +++ b/production/test/check_lfs.sh
 @@ -27,18 +27,27 @@ exit_handler() {
@@ -122,19 +146,19 @@ index 3a3b67b030a9..7e7843ffee09 100755
      cat <<< "\${temp}" > "\${log_file_name}"
 -  fi
  
--  aws lambda invoke \
--      --function-name write-infra-logs \
--      --payload "\$(cat "\${log_file_name}")" \
--      --region us-east-1 \
+-  aws lambda invoke \\ 
+-      --function-name write-infra-logs \\ 
+-      --payload "\$(cat "\${log_file_name}")" \\ 
+-      --region us-east-1 \\ 
 -      "\${WORK_DIR}/blk_upload_log.json" || true
-+    aws lambda invoke \ 
-+        --function-name write-infra-logs \ 
-+        --payload "\$(cat "\${log_file_name}")" \ 
-+        --region us-east-1 \ 
-+        "\${WORK_DIR}/blk_upload_log.json" || aws lambda invoke \ 
-+          --function-name write-infra-logs \
-+          --payload "{ \"event_type\": \"check-lfs\", \"result\": \"upload_fail\" }" \ 
-+          --region us-east-1 \
++    aws lambda invoke \\  
++        --function-name write-infra-logs \\  
++        --payload "\$(cat "\${log_file_name}")" \\  
++        --region us-east-1 \\  
++        "\${WORK_DIR}/blk_upload_log.json" || aws lambda invoke \\ 
++          --function-name write-infra-logs \\ 
++          --payload "{ \"event_type\": \"check-lfs\", \"result\": \"upload_fail\" }" \\ 
++          --region us-east-1 \\ 
 +          "\${WORK_DIR}/blk_upload_log.json" || true 
 +  fi 
  
@@ -149,9 +173,8 @@ index 3a3b67b030a9..7e7843ffee09 100755
 +
    exit 0
  }
-
  
-@@ -167,8 +180,7 @@ main() {
+@@ -167,8 +176,7 @@ main() {
              # compare with content in file system
              git lfs pointer --stdin --file="\${changed_file}" > /dev/null 2>&1 || \\ 
              (log_error "File \${changed_file} LFS integrity is broken."; append_check_error "\${changed_file}"; mark_failed) || \\ 
@@ -161,38 +184,9 @@ index 3a3b67b030a9..7e7843ffee09 100755
        else
          log_info "Skip LFS check for file \${changed_file}"
          append_timestamp_log "\${changed_file}" "normal"
-
-
-diff --git a/.buildkite/hooks/post-checkout b/.buildkite/hooks/post-checkout
-index f93956e11e91..08df4d38f020 100755
---- a/.buildkite/hooks/post-checkout
-+++ b/.buildkite/hooks/post-checkout
-@@ -18,7 +18,7 @@ assert_clean_checkout() {
- }
- 
- main() {
--  assert_clean_checkout
-+  true
- }
- 
- main "$@"
-
- diff --git a/production/buildkite/_buildkite_pipeline.sh b/production/buildkite/_buildkite_pipeline.sh
-index ec2e4b40df29..54abbf7ed9de 100755
---- a/production/buildkite/_buildkite_pipeline.sh
-+++ b/production/buildkite/_buildkite_pipeline.sh
-@@ -15,7 +15,7 @@ source "\${REPO_DIR}/tools/bash/_logging.sh"
- # shellcheck source=tools/buildkite/plugins/docker-ecr-auth/_auth.sh
- source "\${REPO_DIR}/tools/buildkite/plugins/docker-ecr-auth/_auth.sh"
- 
--BUILDKITE_GITHUB_CHECKOUT_PLUGIN_VERSION="\${GITHUB_CHECKOUT_PLUGIN_VERSION:-0ae86092625c2e375232cf8a1c7b01f0096059a9}"
-+BUILDKITE_GITHUB_CHECKOUT_PLUGIN_VERSION="\${GITHUB_CHECKOUT_PLUGIN_VERSION:-a88d54105ed5f8665287a01c816389598e5e9a77}"
- # shellcheck disable=SC2034
- BUILDKITE_GITHUB_CHECKOUT_PLUGIN="arromer/github-fetch#\${BUILDKITE_GITHUB_CHECKOUT_PLUGIN_VERSION}"
- # shellcheck disable=SC2034
-
 EOF
 )
+
 
 set -euo pipefail
 
