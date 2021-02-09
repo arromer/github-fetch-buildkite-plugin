@@ -91,7 +91,7 @@ checkout() {
   git clean -ffxdq
 
   git_log=$(mktemp --suffix .log --tmpdir githublog.XXXXXXXXXX)
-  trap 'buildkite-agent artifact upload "${git_log}" && rm -rf "${git_log} EXIT'
+  trap 'buildkite-agent artifact upload "${git_log}" && rm -rf "${git_log}' EXIT
 
   # Check the current state to make sure we start from a clean working tree.
   # This does both "refresh the index and updating the cached stat information"
