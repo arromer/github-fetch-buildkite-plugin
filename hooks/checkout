@@ -24,6 +24,8 @@ GIT_REMOTE_TIMEOUT_EXIT_CODE="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT
 # Otherwise it will re-use a cached copy from S3 for the first time or re-use the local repository.
 BUILDKITE_CLEAN_CHECKOUT="${BUILDKITE_CLEAN_CHECKOUT:-false}"
 
+git_log=$(mktemp --suffix .log --tmpdir githublog.XXXXXXXXXX)
+
 # Prints an info line to stdout.
 log_info() {
   echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: $*"
@@ -75,7 +77,7 @@ copy_checkout_from_s3() {
 
   pushd .. >/dev/null
   # shellcheck disable=SC2064
-  trap "rm ${PWD}/${checkout}" EXIT
+  trap "rm ${PWD}/${checkout};buildkite-agent artifact upload ${git_log};rm -rf ${git_log}" EXIT
   aws s3 cp "${s3_url}/${checkout}" "${PWD}/${checkout}"
   tar -zxf "${PWD}/${checkout}"
   popd >/dev/null
@@ -90,8 +92,6 @@ checkout() {
   git reset --hard
   git clean -ffxdq
 
-  git_log=$(mktemp --suffix .log --tmpdir githublog.XXXXXXXXXX)
-  trap 'buildkite-agent artifact upload "${git_log}";rm -rf "${git_log}"' EXIT
 
   # Check the current state to make sure we start from a clean working tree.
   # This does both "refresh the index and updating the cached stat information"
