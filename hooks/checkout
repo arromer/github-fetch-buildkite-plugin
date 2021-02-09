@@ -2,10 +2,10 @@
 
 PATCH_VAR=$(cat <<EOF
 diff --git a/production/buildkite/pipelines/canva-web-build/pipeline.ts b/production/buildkite/pipelines/canva-web-build/pipeline.ts
-index 6a948267e6fd..d380873b9eaa 100644
+index 6a948267e6fd..61827714ec67 100644
 --- a/production/buildkite/pipelines/canva-web-build/pipeline.ts
 +++ b/production/buildkite/pipelines/canva-web-build/pipeline.ts
-@@ -269,38 +269,38 @@ export async function getPipeline(args: PipelineArgs): Promise<Pipeline> {
+@@ -269,52 +269,52 @@ export async function getPipeline(args: PipelineArgs): Promise<Pipeline> {
        generateCanvaBuildTrigger.bind(null, env));
  
    const greenBlockingSteps = [
@@ -73,6 +73,43 @@ index 6a948267e6fd..d380873b9eaa 100644
 +    // ...await getE2ETriggerSteps(args, env, ghControlUserEnv, [backend, frontend]),
 +    // ...await getIOSWebXTriggerSteps(args, env, ghControlUserEnv, [backend, frontend]),
    ];
+ 
+ 
+-  pipeline.add(await annotateFailures(
+-      args,
+-      [{
+-        // TODO(Uri): change this so it can figure out which step the results come from
+-        label: 'Pipeline',
+-        artifact_path: "**/*_test_results/*-test-*.xml",
+-        type: 'junit',
+-      }],
+-      annotatedTestSteps,
+-      env,
+-  ));
++  // pipeline.add(await annotateFailures(
++  //     args,
++  //     [{
++  //       // TODO(Uri): change this so it can figure out which step the results come from
++  //       label: 'Pipeline',
++  //       artifact_path: "**/*_test_results/*-test-*.xml",
++  //       type: 'junit',
++  //     }],
++  //     annotatedTestSteps,
++  //     env,
++  // ));
+   if (current !== experimental) {
+     pipeline.add(await updateCheckpoint(
+         { ...rest, env },
+@@ -329,7 +329,7 @@ export async function getPipeline(args: PipelineArgs): Promise<Pipeline> {
+         experimental,
+     ));
+   }
+-  pipeline.add(...greenBlockingSteps);
+-  pipeline.add(await updateCheckpoint({ ...rest, env }, 'green', greenBlockingSteps, current));
++  // pipeline.add(...greenBlockingSteps);
++  // pipeline.add(await updateCheckpoint({ ...rest, env }, 'green', greenBlockingSteps, current));
+   return pipeline;
+ }
  
  
 diff --git a/production/test/check_lfs.sh b/production/test/check_lfs.sh
