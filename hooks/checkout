@@ -28,7 +28,7 @@ index 6d2fcca00699..66c487389554 100755
  BUILDKITE_GITHUB_CHECKOUT_PLUGIN="arromer/github-fetch#\${BUILDKITE_GITHUB_CHECKOUT_PLUGIN_VERSION}"
  # shellcheck disable=SC2034
 diff --git a/production/buildkite/pipelines/canva-web-build/pipeline.ts b/production/buildkite/pipelines/canva-web-build/pipeline.ts
-index cf7cba977aff..9613d3e2800c 100644
+index cf7cba977aff..b468d975a0a7 100644
 --- a/production/buildkite/pipelines/canva-web-build/pipeline.ts
 +++ b/production/buildkite/pipelines/canva-web-build/pipeline.ts
 @@ -271,52 +271,52 @@ export async function getPipeline(args: PipelineArgs): Promise<Pipeline> {
@@ -131,7 +131,7 @@ index cf7cba977aff..9613d3e2800c 100644
    }
    pipeline.add(...greenBlockingSteps);
 -  pipeline.add(await updateCheckpoint({ ...rest, env }, 'green', greenBlockingSteps, current));
-+  // pipeline.add(await updateCheckpoint({ ...rest, env }, 'green', greenBlockingSteps, current));
++  //pipeline.add(await updateCheckpoint({ ...rest, env }, 'green', greenBlockingSteps, current));
    return pipeline;
  }
 
