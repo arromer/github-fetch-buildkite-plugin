@@ -110,34 +110,32 @@ index 6a948267e6fd..61827714ec67 100644
 +  // pipeline.add(await updateCheckpoint({ ...rest, env }, 'green', greenBlockingSteps, current));
    return pipeline;
  }
- 
- 
+
+
 diff --git a/production/test/check_lfs.sh b/production/test/check_lfs.sh
-index 3a3b67b030a9..e271b6bcf85a 100755
+index 3a3b67b030a9..7e7843ffee09 100755
 --- a/production/test/check_lfs.sh
 +++ b/production/test/check_lfs.sh
-@@ -27,18 +27,31 @@ exit_handler() {
+@@ -27,18 +27,27 @@ exit_handler() {
  
      temp="\$(jq --arg code "\${last_error_code}" '.exitcode=\$code' <<< "\${temp}")"
      cat <<< "\${temp}" > "\${log_file_name}"
 -  fi
  
--  aws lambda invoke \\ 
-+    aws lambda invoke \\ 
-+        --function-name write-infra-logs \\ 
-+        --payload "\$(cat "\${log_file_name}")" \\ 
-+        --region us-east-1 \\ 
-+        "\${WORK_DIR}/blk_upload_log.json" \\ 
-+    || \\ 
-+    aws lambda invoke \\ 
-       --function-name write-infra-logs \\ 
--      --payload "\$(cat "\${log_file_name}")" \\ 
-+      --payload "{ \\"event_type\\": \\"check-lfs\\", \\"result\\": \\"upload_fail\\" }" \\ 
-       --region us-east-1 \\ 
--      "\${WORK_DIR}/blk_upload_log.json" || true 
-+      "\${WORK_DIR}/blk_upload_log.json" \\ 
-+    || \\ 
-+    true 
+-  aws lambda invoke \
+-      --function-name write-infra-logs \
+-      --payload "\$(cat "\${log_file_name}")" \
+-      --region us-east-1 \
+-      "\${WORK_DIR}/blk_upload_log.json" || true
++    aws lambda invoke \ 
++        --function-name write-infra-logs \ 
++        --payload "\$(cat "\${log_file_name}")" \ 
++        --region us-east-1 \ 
++        "\${WORK_DIR}/blk_upload_log.json" || aws lambda invoke \ 
++          --function-name write-infra-logs \
++          --payload "{ \"event_type\": \"check-lfs\", \"result\": \"upload_fail\" }" \ 
++          --region us-east-1 \
++          "\${WORK_DIR}/blk_upload_log.json" || true 
 +  fi 
  
    buildkite-agent artifact upload "\${log_file_name}" || true
@@ -151,6 +149,7 @@ index 3a3b67b030a9..e271b6bcf85a 100755
 +
    exit 0
  }
+
  
 @@ -167,8 +180,7 @@ main() {
              # compare with content in file system
