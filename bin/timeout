@@ -10,6 +10,12 @@ main() {
   local -r cmd=( "$@" )
   local rc=0
 
+  # Execute `$cmd` without a timeout if `$duration` is 0
+  if [[ "$duration" -eq 0 ]]; then
+    "${cmd[@]}" || rc=$?
+    return "$rc"
+  fi
+
   # Run in a subshell to avoid job control messages
   (
     "${cmd[@]}" &
