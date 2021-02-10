@@ -97,7 +97,6 @@ checkout() {
   git reset --hard
   git clean -ffxdq
 
-  trap 'buildkite-agent artifact upload "${git_log}" && rm -rf "${git_log}"' EXIT
 
   # Check the current state to make sure we start from a clean working tree.
   # This does both "refresh the index and updating the cached stat information"
