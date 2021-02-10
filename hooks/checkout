@@ -31,6 +31,11 @@ log_info() {
   echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: $*"
 }
 
+log_and_run() {
+  echo "COMMAND: $@" >> "${git_log}"
+  $@ &>> "${git_log}"
+}
+
 # Checks if an env var is set
 # Arguments:
 # $1: var name
@@ -77,7 +82,7 @@ copy_checkout_from_s3() {
 
   pushd .. >/dev/null
   # shellcheck disable=SC2064
-  trap "rm ${PWD}/${checkout};buildkite-agent artifact upload ${git_log};rm -rf ${git_log}" EXIT
+  trap "rm ${PWD}/${checkout};buildkite-agent artifact upload ${git_log} && rm -rf ${git_log}" EXIT
   aws s3 cp "${s3_url}/${checkout}" "${PWD}/${checkout}"
   tar -zxf "${PWD}/${checkout}"
   popd >/dev/null
@@ -92,6 +97,7 @@ checkout() {
   git reset --hard
   git clean -ffxdq
 
+  trap 'buildkite-agent artifact upload "${git_log}" && rm -rf "${git_log}"' EXIT
 
   # Check the current state to make sure we start from a clean working tree.
   # This does both "refresh the index and updating the cached stat information"
@@ -102,14 +108,11 @@ checkout() {
 
   if [[ -z "${BUILDKITE_COMMIT:-}" || "${BUILDKITE_COMMIT}" == "HEAD" ]]; then
     exit_code=0
-    echo "COMMAND: GIT_TRACE=1 GIT_CURL_VERBOSE=1 timeout ${GIT_REMOTE_TIMEOUT} git fetch -v --no-tags origin ${BUILDKITE_BRANCH} || exit_code=$?" >> "${git_log}"
-    (GIT_TRACE=1 GIT_CURL_VERBOSE=1 timeout "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?) &>> "${git_log}"
+    GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run timeout "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
     check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
-    echo "COMMAND: GIT_TRACE=1 GIT_CURL_VERBOSE=1 git checkout -f FETCH_HEAD" >> "${git_log}"
-    GIT_TRACE=1 GIT_CURL_VERBOSE=1 git checkout -f FETCH_HEAD &>> "${git_log}"
+    GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run git checkout -f FETCH_HEAD
   elif git cat-file -e "${BUILDKITE_COMMIT}"; then
-    echo "COMMAND: GIT_TRACE=1 GIT_CURL_VERBOSE=1 git checkout -f ${BUILDKITE_COMMIT}" >> "${git_log}"
-    GIT_TRACE=1 GIT_CURL_VERBOSE=1 git checkout -f "${BUILDKITE_COMMIT}" &>> "${git_log}"
+    GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run git checkout -f "${BUILDKITE_COMMIT}"
   else
     # full commit sha is required
     if [[ ! "${BUILDKITE_COMMIT}" =~ [0-9a-f]{40} ]]; then
@@ -117,8 +120,7 @@ checkout() {
       exit 1
     fi
     exit_code=0
-    echo "COMMAND: GIT_TRACE=1 GIT_CURL_VERBOSE=1 timeout ${GIT_REMOTE_TIMEOUT} git fetch -v --no-tags origin ${BUILDKITE_COMMIT} || exit_code=$?" >> "${git_log}"
-   ( GIT_TRACE=1 GIT_CURL_VERBOSE=1 timeout "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_COMMIT}" || exit_code=$?) &>> "${git_log}"
+    GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run timeout "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_COMMIT}" || exit_code=$?
     check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}" || exit_code=$?
     # If the commit isn't there the ref that was pointing to it might have
     # been force pushed in the meantime. Exit with ESTALE to signify the stale
@@ -129,16 +131,14 @@ checkout() {
     # being advertised. In that case fetch the branch instead.
     elif [[ "${exit_code}" -ne 0 ]]; then
       exit_code=0
-      echo "COMMAND: GIT_TRACE=1 GIT_CURL_VERBOSE=1 timeout ${GIT_REMOTE_TIMEOUT} git fetch -v --no-tags origin ${BUILDKITE_BRANCH} || exit_code=$?" >> "${git_log}"
-      (GIT_TRACE=1 GIT_CURL_VERBOSE=1 timeout "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?) &>> "${git_log}"
+      GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run timeout "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
       check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
     fi
     # If the commit doesn't exist the ref that was pointing to it might have
     # been force pushed in the meantime. Exit with ESTALE to signify the stale
     # branch reference in that case.
     exit_code=0
-    echo "COMMAND: GIT_TRACE=1 GIT_CURL_VERBOSE=1 git checkout -f ${BUILDKITE_COMMIT} || exit_code=$?" >> "${git_log}"
-    (GIT_TRACE=1 GIT_CURL_VERBOSE=1 git checkout -f "${BUILDKITE_COMMIT}" || exit_code=$?) &>> "${git_log}"
+    GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run git checkout -f "${BUILDKITE_COMMIT}" || exit_code=$?
     if [[ "${exit_code}" -eq 128 ]]; then
       exit 116
     elif [[ "${exit_code}" -ne 0 ]]; then
