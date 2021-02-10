@@ -5,7 +5,6 @@ A [Buildkite](https://buildkite.com) plugin to fetch a branch from GitHub.
 ## Buildkite Agent Requirements
 
 - [Git](https://git-scm.com/)
-- [Timeout (coreutils)](http://man7.org/linux/man-pages/man1/timeout.1.html)
 - [AWS CLI](https://aws.amazon.com/cli/) (only if `BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL` is provided)
 
 ## Configurations
@@ -35,7 +34,6 @@ The plugin accepts the following environment variables to configure its behaviou
 
 ## Exit Codes
 
-| Exit Code        | Description     
+| Exit Code        | Description
 | ----------- |:-------------------------------------------------------------:
-| 116         | The target Git branch does not contain the specified commit. 
-      
+| 116         | The target Git branch does not contain the specified commit.
