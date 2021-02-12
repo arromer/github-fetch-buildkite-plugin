@@ -85,7 +85,7 @@ copy_checkout_from_s3() {
 
   pushd .. >/dev/null
   # shellcheck disable=SC2064
-  trap "rm ${PWD}/${checkout};buildkite-agent artifact upload ${git_log} && rm -rf ${git_log}" EXIT
+  trap "rm ${PWD}/${checkout};buildkite-agent artifact upload ${git_log};rm -rf ${git_log}" EXIT
   aws s3 cp "${s3_url}/${checkout}" "${PWD}/${checkout}"
   tar -zxf "${PWD}/${checkout}"
   popd >/dev/null
@@ -182,6 +182,7 @@ initialize_local_repo() {
       clone
     fi
   else
+    trap "buildkite-agent artifact upload ${git_log};rm -rf ${git_log}" EXIT
     log_info "Using existing local repository"
   fi
 }
