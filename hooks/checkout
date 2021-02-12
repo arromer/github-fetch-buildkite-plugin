@@ -26,14 +26,7 @@ BUILDKITE_CLEAN_CHECKOUT="${BUILDKITE_CLEAN_CHECKOUT:-false}"
 
 
 # Invoke mktemp in a way which works on macOS and GNU/Linux
-git_log=$(
-  if [[ "$(uname -s)" == Darwin ]]; then
-    XXXXXXXXXX=$(LC_CTYPE=C tr -dc '[:alnum:]' < /dev/urandom | head -c 10)
-    mktemp "${TMPDIR:-/tmp/}githublog.${XXXXXXXXXX}.log"
-  else
-    mktemp --suffix .log --tmpdir githublog.XXXXXXXXXX
-  fi
-)
+git_log=$(mktemp "${TMPDIR:-/tmp/}githublog.XXXXXXXXXX")
 
 PLUGIN_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd)"
 
