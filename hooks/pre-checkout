@@ -27,7 +27,7 @@ export_canva_origin_url() {
   trap 'm -rf ${lambda_output}' EXIT
   local origin_url
   log_info "retrieving SSM param ${SSM_PARAM}"
-  aws lambda invoke --profile build --function-name ssm-cache --payload "{\"ssm_param\": \"${SSM_PARAM}}" "${lambda_output}"
+  aws lambda invoke --function-name ssm-cache --payload "{\"ssm_param\": \"${SSM_PARAM}}" "${lambda_output}"
   origin_url=$(jq -r '.body | fromjson | .message' < "${lambda_output}")
   if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
     export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${repo_dir}"
