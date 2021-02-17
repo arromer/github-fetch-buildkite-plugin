@@ -23,14 +23,12 @@ print_repo_checkout_path() {
 }
 
 export_canva_origin_url() {
+  lambda_output=$(mktemp "${TMPDIR:-/tmp/}githuborigin.XXXXXXXXXX")
+  trap 'm -rf ${lambda_output}' EXIT
   local origin_url
-  log_info "calling SSM param ${SSM_PARAM}"
-  origin_url="$(aws ssm get-parameter \
-      --name "${SSM_PARAM}"\
-      --query "Parameter.Value"\
-      --output text\
-      --region "us-east-1")"
-  repo_dir="$(print_repo_checkout_path "${origin_url}")"
+  log_info "retrieving SSM param ${SSM_PARAM}"
+  aws lambda invoke --profile build --function-name ssm-cache --payload "{\"ssm_param\": \"${SSM_PARAM}}" "${lambda_output}"
+  origin_url=$(jq -r '.body | fromjson | .message' < "${lambda_output}")
   if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
     export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${repo_dir}"
   fi
