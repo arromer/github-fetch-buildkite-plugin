@@ -5,7 +5,8 @@ set -euo pipefail
 SSM_PARAM="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_SSM_PARAM:-${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM:-}}"
 GITHUB_APP_ID="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_APP_ID:-${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_ID:-${GITHUB_APP_ID:-}}}"
 GITHUB_APP_SECRET="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_APP_SECRET:-${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_SECRET:-${GITHUB_APP_SECRET:-}}}"
-
+OUTFILE=$(mktemp)
+trap 'rm ${OUTFILE}' EXIT
 # Prints an info line to stdout.
 log_info() {
   echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: $*"
@@ -23,12 +24,14 @@ print_repo_checkout_path() {
 }
 
 export_canva_origin_url() {
-  lambda_output=$(mktemp "${TMPDIR:-/tmp/}githuborigin.XXXXXXXXXX")
-  trap 'm -rf ${lambda_output}' EXIT
   local origin_url
   log_info "retrieving SSM param ${SSM_PARAM}"
-  aws lambda invoke --function-name ssm-cache --region "us-east-1" --payload "{\"ssm_param\": \"${SSM_PARAM}\"}" "${lambda_output}"
-  origin_url=$(jq -r '.body | fromjson | .message' < "${lambda_output}")
+  aws lambda invoke \
+      --region us-east-1 \
+      --function-name ssm-cache \
+      --payload "{\"ssm_param\": \"${SSM_PARAM}\"}" \
+      "${OUTFILE}"
+  origin_url=$(jq -r '.body | fromjson | .message' < "${OUTFILE}")
   repo_dir="$(print_repo_checkout_path "${origin_url}")"
   if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
     export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${repo_dir}"
@@ -45,10 +48,7 @@ export_buildkite_repo() {
             --arg SecretId "${GITHUB_APP_SECRET}" \
             '{$AppID, $SecretId}')
 
-  local out_file
-  out_file=$(mktemp)
   # shellcheck disable=SC2064
-  trap "rm '${out_file}'" EXIT
 
   # when running aws cli v2, --cli-binary-format raw-in-base64-out is required
   AWS_PAGER='' aws lambda invoke \
@@ -56,10 +56,10 @@ export_buildkite_repo() {
       --function-name github-app-token \
       --cli-binary-format raw-in-base64-out \
       --payload "${payload}" \
-      "${out_file}"
+      "${OUTFILE}"
 
   local token
-  token=$(jq -r '.body' <"${out_file}" | jq -r '.token')
+  token=$(jq -r '.body' <"${OUTFILE}" | jq -r '.token')
 
   # Converts repo url from git@github.com:Org/repo to https://x-access-token:token@github.com/Org/repo
   export BUILDKITE_REPO="https://x-access-token:${token}@github.com/${BUILDKITE_REPO#*@github.com:}"
