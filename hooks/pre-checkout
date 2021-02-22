@@ -24,7 +24,6 @@ print_repo_checkout_path() {
 }
 
 print_canva_origin_from_lambda() {
-  log_info "invoking lambda..."
   aws lambda invoke \
       --region us-east-1 \
       --function-name ssm-cache \
@@ -34,7 +33,6 @@ print_canva_origin_from_lambda() {
 }
 
 print_canva_origin_from_ssm() {
-  log_info "retrieving from SSM"
   aws ssm get-parameter \
       --name "${SSM_PARAM}"\
       --query "Parameter.Value"\
