@@ -28,7 +28,7 @@ print_canva_origin_from_lambda() {
       --region us-east-1 \
       --function-name ssm-cache \
       --payload "{\"ssm_param\": \"${SSM_PARAM}\"}" \
-      "${OUTFILE}" > /dev/null
+      "${OUTFILE}" &> /dev/null
   jq -r '.body | fromjson | .message' < "${OUTFILE}"
 }
 
