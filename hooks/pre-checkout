@@ -5,7 +5,8 @@ set -euo pipefail
 SSM_PARAM="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_SSM_PARAM:-${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM:-}}"
 GITHUB_APP_ID="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_APP_ID:-${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_ID:-${GITHUB_APP_ID:-}}}"
 GITHUB_APP_SECRET="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_APP_SECRET:-${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_SECRET:-${GITHUB_APP_SECRET:-}}}"
-
+OUTFILE=$(mktemp)
+trap 'rm ${OUTFILE}' EXIT
 # Prints an info line to stdout.
 log_info() {
   echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: $*"
@@ -22,14 +23,30 @@ print_repo_checkout_path() {
   echo "${repo_dir}"
 }
 
-export_canva_origin_url() {
-  local origin_url
-  log_info "calling SSM param ${SSM_PARAM}"
-  origin_url="$(aws ssm get-parameter \
+print_canva_origin_from_lambda() {
+  aws lambda invoke \
+      --region us-east-1 \
+      --function-name ssm-cache \
+      --payload "{\"ssm_param\": \"${SSM_PARAM}\"}" \
+      "${OUTFILE}" > /dev/null
+}
+
+print_canva_origin_from_ssm() {
+  aws ssm get-parameter \
       --name "${SSM_PARAM}"\
       --query "Parameter.Value"\
       --output text\
-      --region "us-east-1")"
+      --region "us-east-1"
+}
+
+export_canva_origin_url() {
+  local origin_url
+  log_info "retrieving SSM param ${SSM_PARAM}"
+  if print_canva_origin_from_lambda ; then
+    origin_url="$(jq -r '.body | fromjson | .message' < "${OUTFILE}")"
+  else
+    origin_url="$(print_canva_origin_from_ssm)"
+  fi
   repo_dir="$(print_repo_checkout_path "${origin_url}")"
   if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
     export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${repo_dir}"
@@ -46,10 +63,7 @@ export_buildkite_repo() {
             --arg SecretId "${GITHUB_APP_SECRET}" \
             '{$AppID, $SecretId}')
 
-  local out_file
-  out_file=$(mktemp)
   # shellcheck disable=SC2064
-  trap "rm '${out_file}'" EXIT
 
   # when running aws cli v2, --cli-binary-format raw-in-base64-out is required
   AWS_PAGER='' aws lambda invoke \
@@ -57,10 +71,10 @@ export_buildkite_repo() {
       --function-name github-app-token \
       --cli-binary-format raw-in-base64-out \
       --payload "${payload}" \
-      "${out_file}"
+      "${OUTFILE}"
 
   local token
-  token=$(jq -r '.body' <"${out_file}" | jq -r '.token')
+  token=$(jq -r '.body' <"${OUTFILE}" | jq -r '.token')
 
   # Converts repo url from git@github.com:Org/repo to https://x-access-token:token@github.com/Org/repo
   export BUILDKITE_REPO="https://x-access-token:${token}@github.com/${BUILDKITE_REPO#*@github.com:}"
