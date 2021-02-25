@@ -29,7 +29,6 @@ print_canva_origin_from_lambda() {
       --function-name ssm-cache \
       --payload "{\"ssm_param\": \"${SSM_PARAM}\"}" \
       "${OUTFILE}" > /dev/null
-  jq -r '.body | fromjson | .message' < "${OUTFILE}"
 }
 
 print_canva_origin_from_ssm() {
@@ -43,7 +42,11 @@ print_canva_origin_from_ssm() {
 export_canva_origin_url() {
   local origin_url
   log_info "retrieving SSM param ${SSM_PARAM}"
-  origin_url="$(print_canva_origin_from_lambda || print_canva_origin_from_ssm)"
+  if print_canva_origin_from_lambda ; then
+    origin_url="$(jq -r '.body | fromjson | .message' < "${OUTFILE}")"
+  else
+    origin_url="$(print_canva_origin_from_ssm)"
+  fi
   repo_dir="$(print_repo_checkout_path "${origin_url}")"
   if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
     export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${repo_dir}"
