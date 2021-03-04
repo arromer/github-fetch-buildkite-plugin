@@ -199,8 +199,13 @@ setup_git_lfs() {
 }
 
 main() {
-  export BUILDKITE_REPO="${BUILDKITE_REPO_WITH_TOKEN:-${BUILDKITE_REPO:-}}"
-  log_info "BUILDKITE_REPO=${BUILDKITE_REPO}"
+  if [[ -v BUILDKITE_REPO_WITH_TOKEN ]]; then
+    export BUILDKITE_REPO="${BUILDKITE_REPO_WITH_TOKEN}"
+    log_info "BUILDKITE_REPO=xxxxxxxxx, not printing BUILDKITE_REPO because secret token is in url."
+  elif [[ -v BUILDKITE_REPO ]]; then
+    log_info "BUILDKITE_REPO=${BUILDKITE_REPO}"
+  fi
+
   check_set BUILDKITE_REPO
   check_set BUILDKITE_BRANCH
   check_set BUILDKITE_COMMIT
