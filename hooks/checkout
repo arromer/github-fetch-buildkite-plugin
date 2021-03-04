@@ -199,6 +199,8 @@ setup_git_lfs() {
 }
 
 main() {
+  export BUILDKITE_REPO="${BUILDKITE_REPO_WITH_TOKEN:-BUILDKITE_REPO:-}"
+
   check_set BUILDKITE_REPO
   check_set BUILDKITE_BRANCH
   check_set BUILDKITE_COMMIT
