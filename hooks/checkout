@@ -241,6 +241,10 @@ main() {
     unset GIT_LFS_SKIP_SMUDGE
   fi
 
+  if [[ -v BUILDKITE_REPO_WITH_TOKEN ]]; then
+    export BUILDKITE_REPO=
+  fi
+
   buildkite-agent meta-data set "checkout_success" 0 --job "${BUILDKITE_JOB_ID}"
 }
 
