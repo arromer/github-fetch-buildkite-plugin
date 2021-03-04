@@ -199,14 +199,17 @@ setup_git_lfs() {
 }
 
 main() {
+  local BK_REPO_LOG
   if [[ -v BUILDKITE_REPO_WITH_TOKEN ]]; then
     export BUILDKITE_REPO="${BUILDKITE_REPO_WITH_TOKEN}"
-    log_info "BUILDKITE_REPO=xxxxxxxxx, not printing BUILDKITE_REPO because secret token is in url."
+    BK_REPO_LOG="xxxxxxxxx (masked)"
   elif [[ -v BUILDKITE_REPO ]]; then
-    log_info "BUILDKITE_REPO=${BUILDKITE_REPO}"
+    BK_REPO_LOG="${BUILDKITE_REPO}"
+  else
+    log_info "Neither BUILDKITE_REPO_WITH_TOKEN or BUILDKITE_REPO is set."
+    exit 1
   fi
 
-  check_set BUILDKITE_REPO
   check_set BUILDKITE_BRANCH
   check_set BUILDKITE_COMMIT
   check_set BUILDKITE_BUILD_CHECKOUT_PATH
@@ -223,7 +226,7 @@ main() {
   initialize_local_repo
 
   # set origin in case the repo was changed by the pre-checkout hook
-  log_info "Setting origin to ${BUILDKITE_REPO}"
+  log_info "Setting origin to ${BK_REPO_LOG}"
   git remote set-url origin "${BUILDKITE_REPO}"
 
   if command -v git-lfs >/dev/null; then
