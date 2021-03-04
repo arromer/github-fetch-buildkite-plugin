@@ -232,10 +232,12 @@ setup_git_lfs() {
 
 main() {
   local BK_REPO_LOG
+  local BK_REPO
   if [[ -v BUILDKITE_REPO_WITH_TOKEN ]]; then
-    export BUILDKITE_REPO="${BUILDKITE_REPO_WITH_TOKEN}"
+    BK_REPO=BUILDKITE_REPO_WITH_TOKEN
     BK_REPO_LOG="xxxxxxxxx (masked)"
   elif [[ -v BUILDKITE_REPO ]]; then
+    BK_REPO=BUILDKITE_REPO
     BK_REPO_LOG="${BUILDKITE_REPO}"
   else
     log_info "Neither BUILDKITE_REPO_WITH_TOKEN or BUILDKITE_REPO is set."
@@ -263,9 +265,9 @@ main() {
   while true; do
     initialize_local_repo
 
-  # set origin in case the repo was changed by the pre-checkout hook
-  log_info "Setting origin to ${BK_REPO_LOG}"
-  git remote set-url origin "${BUILDKITE_REPO}"
+    # set origin in case the repo was changed by the pre-checkout hook
+    log_info "Setting origin to ${BK_REPO_LOG}"
+    git remote set-url origin "${BK_REPO}"
 
     if command -v git-lfs >/dev/null; then
       setup_git_lfs
@@ -293,10 +295,6 @@ main() {
     export GIT_LFS_SKIP_SMUDGE="${old_git_lfs_skip_smudge}"
   else
     unset GIT_LFS_SKIP_SMUDGE
-  fi
-
-  if [[ -v BUILDKITE_REPO_WITH_TOKEN ]]; then
-    export BUILDKITE_REPO=
   fi
 
   buildkite-agent meta-data set "checkout_success" 0 --job "${BUILDKITE_JOB_ID}"
