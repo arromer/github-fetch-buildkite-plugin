@@ -77,7 +77,7 @@ export_buildkite_repo() {
   token=$(jq -r '.body' <"${OUTFILE}" | jq -r '.token')
 
   # Converts repo url from git@github.com:Org/repo to https://x-access-token:token@github.com/Org/repo
-  export BUILDKITE_REPO="https://x-access-token:${token}@github.com/${BUILDKITE_REPO#*@github.com:}"
+  export BUILDKITE_REPO_WITH_TOKEN="https://x-access-token:${token}@github.com/${BUILDKITE_REPO#*@github.com:}"
 }
 
 
