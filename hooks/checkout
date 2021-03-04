@@ -70,11 +70,12 @@ check_timeout_exit_code() {
 }
 
 exit_handler() {
-  if [[ $(buildkite-agent artifact upload "${git_log}") ]]; then
-    rm -rf "${git_log}"
-  else
-    log_info "Unable to upload ${git_log}."
+  if [[ -f "${git_log}" ]]; then
+    mv "${git_log}" "${git_log}.log"
+    buildkite-agent artifact upload "${git_log}.log"
+    rm -rf "${git_log}.log"
   fi
+  log_info "Unable to upload ${git_log}."
 }
 
 copy_checkout_from_s3() {
