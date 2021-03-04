@@ -94,8 +94,6 @@ copy_checkout_from_s3() {
   )
 
   pushd .. >/dev/null
-  # shellcheck disable=SC2064
-  trap exit_handler EXIT
   aws s3 cp "${s3_url}/${checkout}" "${PWD}/${checkout}"
   tar -zxf "${PWD}/${checkout}"
   popd >/dev/null
@@ -235,6 +233,9 @@ main() {
   check_set BUILDKITE_BRANCH
   check_set BUILDKITE_COMMIT
   check_set BUILDKITE_BUILD_CHECKOUT_PATH
+
+  # shellcheck disable=SC2064
+  trap exit_handler EXIT
 
   local git_lfs_skip_smudge_was_set=true
   (env | grep --quiet GIT_LFS_SKIP_SMUDGE=) || git_lfs_skip_smudge_was_set=false
