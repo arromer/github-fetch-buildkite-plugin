@@ -70,7 +70,6 @@ check_timeout_exit_code() {
 }
 
 exit_handler() {
-  rm "${PWD}/${checkout}"
   if [[ $(buildkite-agent artifact upload "${git_log}") ]]; then
     rm -rf "${git_log}"
   else
@@ -96,6 +95,7 @@ copy_checkout_from_s3() {
   pushd .. >/dev/null
   aws s3 cp "${s3_url}/${checkout}" "${PWD}/${checkout}"
   tar -zxf "${PWD}/${checkout}"
+  rm "${PWD}/${checkout}"
   popd >/dev/null
 
   log_info "Copying from S3 done"
