@@ -36,8 +36,8 @@ log_info() {
 }
 
 log_and_run() {
-  echo "COMMAND: $@" >> "${git_log}"
-  $@ &>> "${git_log}"
+  echo "COMMAND:" "$@" >> "${git_log}"
+  "$@" &>> "${git_log}"
 }
 
 # Checks if an env var is set
@@ -69,6 +69,16 @@ check_timeout_exit_code() {
   fi
 }
 
+exit_handler() {
+  if [[ -f "${git_log}" ]]; then
+    mv "${git_log}" "${git_log}.log"
+    buildkite-agent artifact upload "${git_log}.log"
+    rm -rf "${git_log}.log"
+  else
+    log_info "Git log file '${git_log}' not found."
+  fi
+}
+
 copy_checkout_from_s3() {
   local s3_url="$1"
   local checkout
@@ -85,10 +95,9 @@ copy_checkout_from_s3() {
   )
 
   pushd .. >/dev/null
-  # shellcheck disable=SC2064
-  trap "rm ${PWD}/${checkout};buildkite-agent artifact upload ${git_log} && rm -rf ${git_log}" EXIT
   aws s3 cp "${s3_url}/${checkout}" "${PWD}/${checkout}"
   tar -zxf "${PWD}/${checkout}"
+  rm "${PWD}/${checkout}"
   popd >/dev/null
 
   log_info "Copying from S3 done"
@@ -98,6 +107,8 @@ checkout() {
   log_info "Starting checkout"
 
   local exit_code
+  exit_code=0
+
   git reset --hard
   git clean -ffxdq
 
@@ -110,18 +121,26 @@ checkout() {
   git config remote.origin.fetch
 
   if [[ -z "${BUILDKITE_COMMIT:-}" || "${BUILDKITE_COMMIT}" == "HEAD" ]]; then
+    log_info "Commit ID is not supplied. Fetch from HEAD."
     exit_code=0
     GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
     check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
-    GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run git checkout -f FETCH_HEAD
+    if [[ "${exit_code}" -ne 0 ]]; then
+      log_info "Git returned error code:${exit_code}"
+      return "${exit_code}"
+    fi
+    GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run git checkout -f FETCH_HEAD || exit_code=$?
   elif git cat-file -e "${BUILDKITE_COMMIT}"; then
-    GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run git checkout -f "${BUILDKITE_COMMIT}"
+    log_info "Checkout BUILDKITE_COMMIT=${BUILDKITE_COMMIT}"
+    GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run git checkout -f "${BUILDKITE_COMMIT}" || exit_code=$?
   else
     # full commit sha is required
     if [[ ! "${BUILDKITE_COMMIT}" =~ [0-9a-f]{40} ]]; then
       log_info "Commit SHA ${BUILDKITE_COMMIT} is not valid. Full SHA is required."
       exit 1
     fi
+
+    log_info "Fetch BUILDKITE_COMMIT=${BUILDKITE_COMMIT}"
     exit_code=0
     GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_COMMIT}" || exit_code=$?
     check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}" || exit_code=$?
@@ -129,13 +148,19 @@ checkout() {
     # been force pushed in the meantime. Exit with ESTALE to signify the stale
     # branch reference in that case.
     if [[ "${exit_code}" -eq 128 ]]; then
-      exit 116
+      log_info "Commit SHA ${BUILDKITE_COMMIT} does not exists. The ref might have been force pushed."
+      return 116
     # If checking out the commit fails, it might be because the commit isn't
     # being advertised. In that case fetch the branch instead.
     elif [[ "${exit_code}" -ne 0 ]]; then
+      log_info "Fail to checkout commit:${BUILDKITE_COMMIT}. Checkout branch:${BUILDKITE_BRANCH} instead."
       exit_code=0
       GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
-      check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
+      check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}" || exit_code=$?
+      if [[ "${exit_code}" -ne 0 ]]; then
+        log_info "Git returned error code:${exit_code}"
+        return "${exit_code}"
+      fi
     fi
     # If the commit doesn't exist the ref that was pointing to it might have
     # been force pushed in the meantime. Exit with ESTALE to signify the stale
@@ -143,12 +168,19 @@ checkout() {
     exit_code=0
     GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run git checkout -f "${BUILDKITE_COMMIT}" || exit_code=$?
     if [[ "${exit_code}" -eq 128 ]]; then
-      exit 116
+      log_info "Commit SHA ${BUILDKITE_COMMIT} does not exists. The ref might have been force pushed."
+      return 116
     elif [[ "${exit_code}" -ne 0 ]]; then
-      exit "${exit_code}"
+      log_info "Git returned unknown code:${exit_code}"
+      return "${exit_code}"
     fi
   fi
-  log_info "Checkout done"
+
+  if [[ "${exit_code}" -eq 0 ]]; then
+    log_info "Checkout done"
+  fi
+
+  return "${exit_code}"
 }
 
 clean_checkout_dir() {
@@ -214,6 +246,9 @@ main() {
   check_set BUILDKITE_COMMIT
   check_set BUILDKITE_BUILD_CHECKOUT_PATH
 
+  # shellcheck disable=SC2064
+  trap exit_handler EXIT
+
   local git_lfs_skip_smudge_was_set=true
   (env | grep --quiet GIT_LFS_SKIP_SMUDGE=) || git_lfs_skip_smudge_was_set=false
   local old_git_lfs_skip_smudge="${GIT_LFS_SKIP_SMUDGE:-}"
@@ -223,17 +258,36 @@ main() {
     echo >&2 "git-lfs not installed, skipping lfs"
   fi
 
-  initialize_local_repo
+  local max_retry=5
+  local retry=0
+  while true; do
+    initialize_local_repo
 
   # set origin in case the repo was changed by the pre-checkout hook
   log_info "Setting origin to ${BK_REPO_LOG}"
   git remote set-url origin "${BUILDKITE_REPO}"
 
-  if command -v git-lfs >/dev/null; then
-    setup_git_lfs
-  fi
+    if command -v git-lfs >/dev/null; then
+      setup_git_lfs
+    fi
 
-  checkout
+    local exit_code
+    exit_code=0
+    checkout || exit_code=$?
+
+    if [[ "${exit_code}" -eq 0 ]]; then
+      break
+    fi
+
+    log_info "main:Checkout failed with error code=${exit_code}. retry=${retry}"
+    ((retry++))
+
+    if [[ "${retry}" -ge "${max_retry}" ]]; then
+      log_info "main:Maximum retry reached."
+      exit "${exit_code}"
+    fi
+
+  done
 
   if [[ "${git_lfs_skip_smudge_was_set}" == "true" ]]; then
     export GIT_LFS_SKIP_SMUDGE="${old_git_lfs_skip_smudge}"
