@@ -74,8 +74,9 @@ exit_handler() {
     mv "${git_log}" "${git_log}.log"
     buildkite-agent artifact upload "${git_log}.log"
     rm -rf "${git_log}.log"
+  else
+    log_info "Git log file '${git_log}' not found."
   fi
-  log_info "Unable to upload ${git_log}."
 }
 
 copy_checkout_from_s3() {
