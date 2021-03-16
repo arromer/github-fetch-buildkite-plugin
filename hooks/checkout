@@ -271,7 +271,7 @@ main() {
     fi
 
     log_info "main:Checkout failed with error code=${exit_code}. retry=${retry}"
-    ((retry++))
+    ((retry+=1))
 
     if [[ "${retry}" -ge "${max_retry}" ]]; then
       log_info "main:Maximum retry reached."
