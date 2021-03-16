@@ -106,7 +106,8 @@ export_buildkite_repo() {
 
   export GITHUB_FETCH_APP_ACCESS_TOKEN="${token}"
   # Converts repo url from git@github.com:Org/repo to https://x-access-token:token@github.com/Org/repo
-  export BUILDKITE_REPO="https://x-access-token:${token}@github.com/${BUILDKITE_REPO#*@github.com:}"
+  export BUILDKITE_CHECKOUT_REPO="https://x-access-token:${token}@github.com/${BUILDKITE_REPO#*@github.com:}"
+  export BUIDLKITE_MASKED_REPO="https://x-access-token:xxxxxx@github.com/${BUILDKITE_REPO#*@github.com:}"
 }
 
 
@@ -118,7 +119,12 @@ main() {
   fi
   if [[ -n "${GITHUB_APP_ID:-}" ]] && [[ -n "${GITHUB_APP_SECRET:-}" ]]; then
     export_buildkite_repo
+  else
+    export BUILDKITE_CHECKOUT_REPO="${BUILDKITE_REPO}"
+    export BUIDLKITE_MASKED_REPO="${BUILDKITE_REPO}"
   fi
+
+  export BUILDKITE_REPO=
 }
 
 main "$@"
