@@ -12,6 +12,14 @@ log_info() {
   echo "$(date '+[%Y-%m-%d %H:%M:%S]') INFO: $*"
 }
 
+# prints the major version of the aws cli running
+print_aws_version() {
+    local version
+    version=$(aws --version 2>&1)
+    [[ "${version}" =~ ^aws-cli\/([0-9])\.[0-9]+.[0-9]+ ]]
+    echo "${BASH_REMATCH[1]}"
+}
+
 # Transforms something like git@github.com:Canva/bla.git to canva__bla
 print_repo_checkout_path() {
   local repo_url="$1"
@@ -24,11 +32,22 @@ print_repo_checkout_path() {
 }
 
 print_canva_origin_from_lambda() {
-  aws lambda invoke \
-      --region us-east-1 \
-      --function-name ssm-cache \
-      --payload "{\"ssm_param\": \"${SSM_PARAM}\"}" \
-      "${OUTFILE}" > /dev/null
+  local aws_version
+  aws_version=$(print_aws_version)
+  if [[ "${aws_version}" == "2" ]]; then
+    aws lambda invoke \
+        --region us-east-1 \
+        --function-name ssm-cache \
+        --cli-binary-format raw-in-base64-out \
+        --payload "{\"ssm_param\": \"${SSM_PARAM}\"}" \
+        "${OUTFILE}" > /dev/null
+  else
+    aws lambda invoke \
+        --region us-east-1 \
+        --function-name ssm-cache \
+        --payload "{\"ssm_param\": \"${SSM_PARAM}\"}" \
+        "${OUTFILE}" > /dev/null
+  fi
 }
 
 print_canva_origin_from_ssm() {
@@ -64,14 +83,23 @@ export_buildkite_repo() {
             '{$AppID, $SecretId}')
 
   # shellcheck disable=SC2064
-
-  # when running aws cli v2, --cli-binary-format raw-in-base64-out is required
-  AWS_PAGER='' aws lambda invoke \
-      --region us-east-1 \
-      --function-name github-app-token \
-      --cli-binary-format raw-in-base64-out \
-      --payload "${payload}" \
-      "${OUTFILE}"
+  local aws_version
+  aws_version=$(print_aws_version)
+  if [[ "${aws_version}" == "2" ]]; then
+    # when running aws cli v2, --cli-binary-format raw-in-base64-out is required
+    aws lambda invoke \
+        --region us-east-1 \
+        --function-name github-app-token \
+        --cli-binary-format raw-in-base64-out \
+        --payload "${payload}" \
+        "${OUTFILE}"
+  else
+    aws lambda invoke \
+        --region us-east-1 \
+        --function-name github-app-token \
+        --payload "${payload}" \
+        "${OUTFILE}"
+  fi
 
   local token
   token=$(jq -r '.body' <"${OUTFILE}" | jq -r '.token')
