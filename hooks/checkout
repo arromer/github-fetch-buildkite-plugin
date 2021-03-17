@@ -195,7 +195,7 @@ clone() {
   # The git clone operation needs an empty directory.
   clean_checkout_dir
   exit_code=0
-  "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git clone "${BUILDKITE_REPO}" . || exit_code=$?
+  "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git clone "${CANVA_REPO}" . || exit_code=$?
   check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
   log_info "Cloning from github done"
 }
@@ -220,10 +220,10 @@ initialize_local_repo() {
 }
 
 setup_git_lfs() {
-  if [[ "${BUILDKITE_REPO}" =~ .*github\.com.* ]]; then
+  if [[ "${CANVA_REPO}" =~ .*github\.com.* ]]; then
     # Workaround for GitHub git-lfs API rate limit error:
     # https://github.com/git-lfs/git-lfs/issues/2133#issuecomment-292557138
-    git config "lfs.https://github.com/${BUILDKITE_REPO#*@github.com:}/info/lfs.access" basic
+    git config "lfs.https://github.com/${CANVA_REPO#*@github.com:}/info/lfs.access" basic
   fi
   # make sure that the lfs hooks & filters are installed locally in the repo
   # in case they have not been installed in the S3 copy
@@ -231,7 +231,7 @@ setup_git_lfs() {
 }
 
 main() {
-  check_set BUILDKITE_REPO
+  check_set CANVA_REPO
   check_set BUILDKITE_BRANCH
   check_set BUILDKITE_COMMIT
   check_set BUILDKITE_BUILD_CHECKOUT_PATH
@@ -254,8 +254,8 @@ main() {
     initialize_local_repo
 
     # set origin in case the repo was changed by the pre-checkout hook
-    log_info "Setting origin to ${BUILDKITE_REPO}"
-    git remote set-url origin "${BUILDKITE_REPO}"
+    log_info "Setting origin to ${CANVA_REPO}"
+    git remote set-url origin "${CANVA_REPO}"
 
     if command -v git-lfs >/dev/null; then
       setup_git_lfs
