@@ -94,11 +94,15 @@ copy_checkout_from_s3() {
       | awk '{print $4}'
   )
 
+  pwd
   pushd .. >/dev/null
+  pwd
   aws s3 cp "${s3_url}/${checkout}" "${PWD}/${checkout}"
   tar -zxf "${PWD}/${checkout}"
   rm "${PWD}/${checkout}"
+  pwd
   popd >/dev/null
+  pwd
 
   log_info "Copying from S3 done"
 }
@@ -256,6 +260,9 @@ main() {
 
     # set origin in case the repo was changed by the pre-checkout hook
     log_info "Setting origin to ${CANVA_MASKED_REPO}"
+    pwd
+    ls -la
+    echo "${CANVA_CHECKOUT_REPO}"
     git remote set-url origin "${CANVA_CHECKOUT_REPO}"
 
     if command -v git-lfs >/dev/null; then
