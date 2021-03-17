@@ -254,7 +254,12 @@ main() {
     initialize_local_repo
 
     # set origin in case the repo was changed by the pre-checkout hook
-    log_info "Setting origin to ${CANVA_REPO}"
+    if [[ -v GITHUB_FETCH_APP_ACCESS_TOKEN ]]; then
+      log_info "Setting origin to [[masked]]"
+    else
+      log_info "Setting origin to ${CANVA_REPO}"
+    fi
+
     git remote set-url origin "${CANVA_REPO}"
 
     if command -v git-lfs >/dev/null; then
