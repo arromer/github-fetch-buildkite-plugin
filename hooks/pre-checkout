@@ -106,6 +106,7 @@ export_buildkite_repo() {
 
   export GITHUB_FETCH_APP_ACCESS_TOKEN="${token}"
   # Converts repo url from git@github.com:Org/repo to https://x-access-token:token@github.com/Org/repo
+  export CANVA_REPO="https://x-access-token:${token}@github.com/${BUILDKITE_REPO#*@github.com:}"
   export BUILDKITE_REPO="https://x-access-token:${token}@github.com/${BUILDKITE_REPO#*@github.com:}"
 }
 
@@ -118,6 +119,8 @@ main() {
   fi
   if [[ -n "${GITHUB_APP_ID:-}" ]] && [[ -n "${GITHUB_APP_SECRET:-}" ]]; then
     export_buildkite_repo
+  else
+    export CANVA_REPO="${BUILDKITE_REPO}"
   fi
 }
 
