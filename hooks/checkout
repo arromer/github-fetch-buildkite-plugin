@@ -255,7 +255,7 @@ main() {
 
     # set origin in case the repo was changed by the pre-checkout hook
     if [[ -v GITHUB_FETCH_APP_ACCESS_TOKEN ]]; then
-      log_info "Setting origin to [[masked]]"
+      log_info "Setting origin to https://x-access-token:[[masked]]@github.com/${CANVA_REPO#*github.com/}"
     else
       log_info "Setting origin to ${CANVA_REPO}"
     fi
