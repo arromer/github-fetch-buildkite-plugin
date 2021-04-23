@@ -6,6 +6,13 @@ if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_BASH_PREFIX:-}" ]]; then
   eval "${BUILDKITE_PLUGIN_GITHUB_FETCH_BASH_PREFIX}"
 fi
 
+# Method used to initialise the repo
+# 0: unknown
+# 1: clone
+# 2: S3 copy
+# 3: clean existing repo
+INITILISATION_METHOD=0
+
 # The maximum amount of time (in seconds) that a remote Git operation (fetch, pull, push) can take.
 # If not specified by the user, no timeout will be applied to Git remote operations.
 GIT_REMOTE_TIMEOUT="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT:-0}"
@@ -204,18 +211,22 @@ initialize_local_repo() {
   # Force a fresh clone.
   if [[ "${BUILDKITE_CLEAN_CHECKOUT}" == "true" ]]; then
     clone
+    INITILISATION_METHOD=1
   # If there is no local repository or the index is in a locked state.
   # When the lock file exists it's probably because a previous job was killed while checking out the
   # repo, in which case it might be corrupted.
   elif [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" || -f ".git/index.lock" ]]; then
     if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL:-}" ]]; then
       copy_checkout_from_s3 "${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}"
+      INITILISATION_METHOD=2
     else
       # When S3 was not configured, fallback to Git clone
       clone
+      INITILISATION_METHOD=1
     fi
   else
     log_info "Using existing local repository"
+    INITILISATION_METHOD=3
   fi
 }
 
@@ -231,6 +242,8 @@ setup_git_lfs() {
 }
 
 main() {
+  SECONDS=0
+
   check_set CANVA_REPO
   check_set BUILDKITE_BRANCH
   check_set BUILDKITE_COMMIT
@@ -271,6 +284,7 @@ main() {
     checkout || exit_code=$?
 
     if [[ "${exit_code}" -eq 0 ]]; then
+      log_info "main:Checkout successful."
       break
     fi
 
@@ -290,7 +304,15 @@ main() {
     unset GIT_LFS_SKIP_SMUDGE
   fi
 
+  log_info "main:Update checkout success"
   buildkite-agent meta-data set "checkout_success" 0 --job "${BUILDKITE_JOB_ID}"
+
+  local duration=$SECONDS
+
+  echo "{\"event_type\":\"github-plugin-stats\",\"repo_initialisation_method\":\"${INITILISATION_METHOD}\",\"duration\":\"${duration}\",\"retry\":\"${retry}\"}"
+  echo "{\"event_type\":\"github-plugin-stats\",\"repo_initialisation_method\":\"${INITILISATION_METHOD}\",\"duration\":\"${duration}\",\"retry\":\"${retry}\"}" | logger
+  test $? -eq 0 || log_info "Fail to log statistics. Ignore error."
+
 }
 
 main "$@"
