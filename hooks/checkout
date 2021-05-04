@@ -102,7 +102,19 @@ copy_checkout_from_s3() {
   )
 
   pushd .. >/dev/null
-  aws s3 cp "${s3_url}/${checkout}" "${PWD}/${checkout}"
+
+  echo "copying checkout ${s3_url}/${checkout}"
+  # Use aria2c download utility if available in the supplied AMI. It parallelize the download which
+  # speeds up the fetch considerably. aria2c can be installed with `sudo apt-get install aria2`.
+  # Benchmarking shows the repo can be downloaded a 50% reduction in download time.
+  if command -v aria2c &> /dev/null; then
+    local signed_url
+    signed_url="$(aws s3 presign --region us-east-1 "${s3_url}/${checkout}")"
+    aria2c --max-connection-per-server=16 --split=16 "${signed_url}" --out="${checkout}"
+  else
+    aws s3 cp "${s3_url}/${checkout}" "${PWD}/${checkout}"
+  fi
+
   local -a decompress_options
   if [[ "$(basename "${checkout}" ".zst")" != "${checkout}" ]]; then
     # Decompress using zstd
