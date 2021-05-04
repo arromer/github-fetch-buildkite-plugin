@@ -103,7 +103,16 @@ copy_checkout_from_s3() {
 
   pushd .. >/dev/null
   aws s3 cp "${s3_url}/${checkout}" "${PWD}/${checkout}"
-  tar -zxf "${PWD}/${checkout}"
+  local -a decompress_options
+  if [[ "$(basename "${checkout}" ".zst")" != "${checkout}" ]]; then
+    # Decompress using zstd
+    decompress_options=("-I" "zstd")
+  else
+    # Auto-detect decompression options
+    decompress_options=()
+  fi
+
+  tar "${decompress_options[@]}" -xf "${PWD}/${checkout}"
   rm "${PWD}/${checkout}"
   popd >/dev/null
 
