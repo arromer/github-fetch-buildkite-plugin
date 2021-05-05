@@ -157,7 +157,7 @@ print_proxy_url() {
   lambda_output=(aws lambda invoke \
       --region us-east-1 \
       --function-name ssm-cache \
-      --payload "{\"ssm_param\": \"${SSM_PARAM}\"}" \
+      --payload "{\"ssm_param\": \"${PROXY_URL_SSM_PARAM}\"}" \
       "${params[@]}" "${OUTFILE}")
   if [[ $(jq -r 'has("FunctionError")' <<< "${lambda_output}") == "false" ]]; then
     # if no error in response, print message
