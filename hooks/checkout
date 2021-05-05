@@ -31,11 +31,15 @@ GIT_REMOTE_TIMEOUT_EXIT_CODE="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT
 # Otherwise it will re-use a cached copy from S3 for the first time or re-use the local repository.
 BUILDKITE_CLEAN_CHECKOUT="${BUILDKITE_CLEAN_CHECKOUT:-false}"
 
+PROXY_URL_SSM_PARAM="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_PROXY_URL_SSM_PARAM:-${BUILDKITE_PLUGIN_GITHUB_FETCH_PROXY_URL_SSM_PARAM:-/github/git-proxy/url}}"
+
 
 # Invoke mktemp in a way which works on macOS and GNU/Linux
 git_log=$(mktemp "${TMPDIR:-/tmp/}githublog.XXXXXXXXXX")
 
 PLUGIN_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd)"
+
+OUTFILE=$(mktemp)
 
 # Prints an info line to stdout.
 log_info() {
@@ -84,6 +88,7 @@ exit_handler() {
   else
     log_info "Git log file '${git_log}' not found."
   fi
+  rm ${OUTFILE}
 }
 
 copy_checkout_from_s3() {
@@ -131,6 +136,35 @@ copy_checkout_from_s3() {
   log_info "Copying from S3 done"
 }
 
+# prints the major version of the aws cli running
+print_aws_version() {
+    local version
+    version=$(aws --version 2>&1)
+    [[ "${version}" =~ ^aws-cli\/([0-9])\.[0-9]+.[0-9]+ ]]
+    echo "${BASH_REMATCH[1]}"
+}
+
+print_proxy_url() {
+  local aws_version
+  aws_version=$(print_aws_version)
+  local -a params
+  if [[ "${aws_version}" == "2" ]]; then
+    params=(--cli-binary-format raw-in-base64-out)
+  else
+    params=()
+  fi
+  local lambda_output
+  lambda_output=(aws lambda invoke \
+      --region us-east-1 \
+      --function-name ssm-cache \
+      --payload "{\"ssm_param\": \"${SSM_PARAM}\"}" \
+      "${params[@]}" "${OUTFILE}")
+  if [[ $(jq -r 'has("FunctionError")' <<< "${lambda_output}") == "false" ]]; then
+    # if no error in response, print message
+    jq -r '.body | fromjson | .message' < "${OUTFILE}"
+  fi
+}
+
 checkout() {
   log_info "Starting checkout"
 
@@ -139,6 +173,14 @@ checkout() {
 
   git reset --hard
   git clean -ffxdq
+
+  local proxy_url
+  proxy_url=$(print_proxy_url)
+  if [[ -n "${proxy_url:-}" ]]; then
+    echo "Using proxy: ${proxy_url}"
+  else
+    echo "Not using proxy"
+  fi
 
 
   # Check the current state to make sure we start from a clean working tree.
