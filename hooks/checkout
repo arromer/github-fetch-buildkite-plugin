@@ -176,11 +176,12 @@ checkout() {
   if [[ -n "${proxy_url:-}" ]]; then
     log_info "Using proxy: ${proxy_url}"
     git config http.proxy "${proxy_url}"
-    git config url."https://github.com/".insteadOf git@github.com:
+    git config url."http://github.com/".insteadOf git@github.com:
+    git config protocol.version 2
   else
     log_info "Not using proxy"
     git config --unset http.proxy
-    git config --unset url."https://github.com/".insteadof
+    git config --unset url."http://github.com/".insteadof
   fi
 
   git reset --hard
