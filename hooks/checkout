@@ -88,7 +88,7 @@ exit_handler() {
   else
     log_info "Git log file '${git_log}' not found."
   fi
-  rm ${OUTFILE}
+  rm "${OUTFILE}"
 }
 
 copy_checkout_from_s3() {
