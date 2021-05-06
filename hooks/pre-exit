@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+main() {
+    if git config --get http.proxy; then
+        git config --unset http.proxy
+    fi
+    if git config --get url."http://github.com/".insteadof; then
+        git config --unset url."http://github.com/".insteadof
+    fi
+    if git config --get url."https://github.com/".insteadof; then
+        git config --unset url."https://github.com/".insteadof
+    fi
+}
+
+main "$@"
