@@ -171,9 +171,6 @@ checkout() {
   local exit_code
   exit_code=0
 
-  git reset --hard
-  git clean -ffxdq
-
   local proxy_url
   proxy_url=$(print_proxy_url)
   if [[ -n "${proxy_url:-}" ]]; then
@@ -186,6 +183,8 @@ checkout() {
     git config --unset url."https://github.com/".insteadof
   fi
 
+  git reset --hard
+  git clean -ffxdq
 
   # Check the current state to make sure we start from a clean working tree.
   # This does both "refresh the index and updating the cached stat information"
