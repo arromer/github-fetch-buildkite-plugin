@@ -180,7 +180,6 @@ checkout() {
     echo "Using proxy: ${proxy_url}"
     git config http.proxy "${proxy_url}"
     git config url."https://github.com/".insteadOf git@github.com:
-    git config url."https://".insteadOf git://
   else
     echo "Not using proxy"
     git config --unset http.proxy
