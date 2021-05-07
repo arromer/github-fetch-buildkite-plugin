@@ -207,7 +207,7 @@ checkout() {
   else
     log_info "Not using proxy"
     git config --unset http.proxy
-    git config --unset url."http://github.com/".insteadof
+    git config --unset url."http://github.com/".insteadOf
   fi
 
   git config protocol.version 2
