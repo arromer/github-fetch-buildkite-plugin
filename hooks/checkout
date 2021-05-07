@@ -32,6 +32,7 @@ GIT_REMOTE_TIMEOUT_EXIT_CODE="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT
 BUILDKITE_CLEAN_CHECKOUT="${BUILDKITE_CLEAN_CHECKOUT:-false}"
 
 PROXY_URL_SSM_PARAM="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_PROXY_URL_SSM_PARAM:-${BUILDKITE_PLUGIN_GITHUB_FETCH_PROXY_URL_SSM_PARAM:-/github/git-proxy/url}}"
+PROXY_ROLLOUT_SSM_PARAM="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_PROXY_ROLLOUT_SSM_PARAM:-${BUILDKITE_PLUGIN_GITHUB_FETCH_PROXY_ROLLOUT_SSM_PARAM:-/github/git-proxy/rollout}}"
 
 
 # Invoke mktemp in a way which works on macOS and GNU/Linux
@@ -91,8 +92,15 @@ exit_handler() {
   rm "${OUTFILE}"
 }
 
+print_repo_dir() {
+  grep -Eo '([a-zA-Z0-9-]+\/[a-zA-Z0-9-]+)' <<< "${BUILDKITE_REPO}" \
+      | tr '[:upper:]' '[:lower:]' \
+      | sed 's/\//__/g'
+}
+
 copy_checkout_from_s3() {
-  local s3_url="$1"
+  local repo_dir=$(print_repo_dir)
+  local s3_url="${1}/repo_dir"
   local checkout
 
   log_info "Getting checkout from S3"
@@ -144,7 +152,8 @@ print_aws_version() {
     echo "${BASH_REMATCH[1]}"
 }
 
-print_proxy_url() {
+print_ssm_param(){
+  local ssm_param="${1}"
   local aws_version
   aws_version=$(print_aws_version)
   local -a params
@@ -157,11 +166,29 @@ print_proxy_url() {
   lambda_output=$(aws lambda invoke \
       --region us-east-1 \
       --function-name ssm-cache \
-      --payload "{\"ssm_param\": \"${PROXY_URL_SSM_PARAM}\"}" \
+      --payload "{\"ssm_param\": \"${ssm_param}\"}" \
       "${params[@]}" "${OUTFILE}")
   if [[ $(jq -r 'has("FunctionError")' <<< "${lambda_output}") == "false" ]]; then
     # if no error in response, print message
     jq -r '.body | fromjson | .message' < "${OUTFILE}"
+  fi
+}
+
+print_proxy_url() {
+  local proxy_url
+  proxy_url=$(print_ssm_param "${PROXY_URL_SSM_PARAM}")
+  echo "proxy url param is ${proxy_url}" 1>&2
+  if [[ -n "${proxy_url:-}" ]]; then
+    local repo_dir
+    repo_dir=$(print_repo_dir)
+    local proxy_rollout_param="${PROXY_ROLLOUT_SSM_PARAM}/${repo_dir}"
+
+    local rollout
+    rollout=$(print_ssm_param "${proxy_rollout_param}")
+    echo "proxy rollout param is ${rollout}" 1>&2
+    if [[ -n "${rollout:-}" && $((1 + $RANDOM % 100)) -le "${rollout}" ]];
+      echo "${proxy_url}"
+    fi
   fi
 }
 
