@@ -31,11 +31,16 @@ GIT_REMOTE_TIMEOUT_EXIT_CODE="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT
 # Otherwise it will re-use a cached copy from S3 for the first time or re-use the local repository.
 BUILDKITE_CLEAN_CHECKOUT="${BUILDKITE_CLEAN_CHECKOUT:-false}"
 
+PROXY_URL_SSM_PARAM="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_PROXY_URL_SSM_PARAM:-${BUILDKITE_PLUGIN_GITHUB_FETCH_PROXY_URL_SSM_PARAM:-/github/git-proxy/url}}"
+PROXY_ROLLOUT_SSM_PARAM="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_PROXY_ROLLOUT_SSM_PARAM:-${BUILDKITE_PLUGIN_GITHUB_FETCH_PROXY_ROLLOUT_SSM_PARAM:-/github/git-proxy/rollout}}"
+
 
 # Invoke mktemp in a way which works on macOS and GNU/Linux
 git_log=$(mktemp "${TMPDIR:-/tmp/}githublog.XXXXXXXXXX")
 
 PLUGIN_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd)"
+
+OUTFILE=$(mktemp)
 
 # Prints an info line to stdout.
 log_info() {
@@ -84,10 +89,18 @@ exit_handler() {
   else
     log_info "Git log file '${git_log}' not found."
   fi
+  rm "${OUTFILE}"
+}
+
+print_repo_dir() {
+  grep -Eo '([a-zA-Z0-9-]+\/[a-zA-Z0-9-]+)' <<< "${BUILDKITE_REPO}" \
+      | tr '[:upper:]' '[:lower:]' \
+      | sed 's/\//__/g'
 }
 
 copy_checkout_from_s3() {
-  local s3_url="$1"
+  local repo_dir=$(print_repo_dir)
+  local s3_url="${1}/repo_dir"
   local checkout
 
   log_info "Getting checkout from S3"
@@ -131,15 +144,75 @@ copy_checkout_from_s3() {
   log_info "Copying from S3 done"
 }
 
+# prints the major version of the aws cli running
+print_aws_version() {
+    local version
+    version=$(aws --version 2>&1)
+    [[ "${version}" =~ ^aws-cli\/([0-9])\.[0-9]+.[0-9]+ ]]
+    echo "${BASH_REMATCH[1]}"
+}
+
+print_ssm_param(){
+  local ssm_param="${1}"
+  local aws_version
+  aws_version=$(print_aws_version)
+  local -a params
+  if [[ "${aws_version}" == "2" ]]; then
+    params=(--cli-binary-format raw-in-base64-out)
+  else
+    params=()
+  fi
+  local lambda_output
+  lambda_output=$(aws lambda invoke \
+      --region us-east-1 \
+      --function-name ssm-cache \
+      --payload "{\"ssm_param\": \"${ssm_param}\"}" \
+      "${params[@]}" "${OUTFILE}")
+  if [[ $(jq -r 'has("FunctionError")' <<< "${lambda_output}") == "false" ]]; then
+    # if no error in response, print message
+    jq -r '.body | fromjson | .message' < "${OUTFILE}"
+  fi
+}
+
+print_proxy_url() {
+  local proxy_url
+  proxy_url=$(print_ssm_param "${PROXY_URL_SSM_PARAM}")
+  echo "proxy url param is ${proxy_url}" 1>&2
+  if [[ -n "${proxy_url:-}" ]]; then
+    local repo_dir
+    repo_dir=$(print_repo_dir)
+    local proxy_rollout_param="${PROXY_ROLLOUT_SSM_PARAM}/${repo_dir}"
+
+    local rollout
+    rollout=$(print_ssm_param "${proxy_rollout_param}")
+    echo "proxy rollout param is ${rollout}" 1>&2
+    if [[ -n "${rollout:-}" && $((1 + $RANDOM % 100)) -le "${rollout}" ]]; then
+      echo "${proxy_url}"
+    fi
+  fi
+}
+
 checkout() {
   log_info "Starting checkout"
 
   local exit_code
   exit_code=0
 
+  local proxy_url
+  proxy_url=$(print_proxy_url)
+  if [[ -n "${proxy_url:-}" ]]; then
+    log_info "Using proxy: ${proxy_url}"
+    git config http.proxy "${proxy_url}"
+    git config url."http://github.com/".insteadOf git@github.com:
+  else
+    log_info "Not using proxy"
+    git config --unset http.proxy
+    git config --unset url."http://github.com/".insteadOf
+  fi
+
+  git config protocol.version 2
   git reset --hard
   git clean -ffxdq
-
 
   # Check the current state to make sure we start from a clean working tree.
   # This does both "refresh the index and updating the cached stat information"
