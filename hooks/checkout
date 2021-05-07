@@ -186,7 +186,7 @@ print_proxy_url() {
     local rollout
     rollout=$(print_ssm_param "${proxy_rollout_param}")
     echo "proxy rollout param is ${rollout}" 1>&2
-    if [[ -n "${rollout:-}" && $((1 + $RANDOM % 100)) -le "${rollout}" ]];
+    if [[ -n "${rollout:-}" && $((1 + $RANDOM % 100)) -le "${rollout}" ]]; then
       echo "${proxy_url}"
     fi
   fi
