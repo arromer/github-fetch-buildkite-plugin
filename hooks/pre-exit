@@ -6,6 +6,9 @@ main() {
     if git config --get http.proxy; then
         git config --unset http.proxy
     fi
+    if git config --get remote.origin.pushurl; then
+        git config --unset remote.origin.pushurl
+    fi
     git config remote.origin.url "${BUILDKITE_REPO}"
 }
 
