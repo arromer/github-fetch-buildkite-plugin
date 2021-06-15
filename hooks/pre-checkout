@@ -89,14 +89,14 @@ export_buildkite_repo() {
     # when running aws cli v2, --cli-binary-format raw-in-base64-out is required
     aws lambda invoke \
         --region us-east-1 \
-        --function-name github-app-token \
+        --function-name github-app-token:stable \
         --cli-binary-format raw-in-base64-out \
         --payload "${payload}" \
         "${OUTFILE}"
   else
     aws lambda invoke \
         --region us-east-1 \
-        --function-name github-app-token \
+        --function-name github-app-token:stable \
         --payload "${payload}" \
         "${OUTFILE}"
   fi
