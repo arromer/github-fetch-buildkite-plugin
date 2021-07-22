@@ -77,39 +77,10 @@ export_canva_origin_url() {
 
 export_buildkite_repo() {
   log_info "starting pre-checkout"
-  local payload
-  payload=$(jq -n --arg AppID "${GITHUB_APP_ID}" \
-            --arg SecretId "${GITHUB_APP_SECRET}" \
-            '{$AppID, $SecretId}')
-
-  # shellcheck disable=SC2064
-  local aws_version
-  aws_version=$(print_aws_version)
-  if [[ "${aws_version}" == "2" ]]; then
-    # when running aws cli v2, --cli-binary-format raw-in-base64-out is required
-    aws lambda invoke \
-        --region us-east-1 \
-        --function-name github-app-token:stable \
-        --cli-binary-format raw-in-base64-out \
-        --payload "${payload}" \
-        "${OUTFILE}"
-  else
-    aws lambda invoke \
-        --region us-east-1 \
-        --function-name github-app-token:stable \
-        --payload "${payload}" \
-        "${OUTFILE}"
-  fi
-
-  local token
-  token=$(jq -r '.body' <"${OUTFILE}" | jq -r '.token')
-
-  export GITHUB_FETCH_APP_ACCESS_TOKEN="${token}"
-  # Converts repo url from git@github.com:Org/repo to https://x-access-token:token@github.com/Org/repo
-  export CANVA_REPO="https://x-access-token:${token}@github.com/${BUILDKITE_REPO#*@github.com:}"
-  export BUILDKITE_REPO="https://x-access-token:${token}@github.com/${BUILDKITE_REPO#*@github.com:}"
+  # Converts repo url from git@github.com:Org/repo to https://github.com/Org/repo
+  export CANVA_REPO="https://github.com/${BUILDKITE_REPO#*@github.com:}"
+  export BUILDKITE_REPO="https://github.com/${BUILDKITE_REPO#*@github.com:}"
 }
-
 
 main() {
   if [[ -n "${SSM_PARAM:-}" ]]; then
@@ -117,11 +88,7 @@ main() {
   else
     log_info "ssm param not configured skipping"
   fi
-  if [[ -n "${GITHUB_APP_ID:-}" ]] && [[ -n "${GITHUB_APP_SECRET:-}" ]]; then
-    export_buildkite_repo
-  else
-    export CANVA_REPO="${BUILDKITE_REPO}"
-  fi
+  export_buildkite_repo
 }
 
 main "$@"
