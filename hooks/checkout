@@ -31,8 +31,8 @@ GIT_REMOTE_TIMEOUT_EXIT_CODE="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT
 # Otherwise it will re-use a cached copy from S3 for the first time or re-use the local repository.
 BUILDKITE_CLEAN_CHECKOUT="${BUILDKITE_CLEAN_CHECKOUT:-false}"
 
-PROXY_URL_SSM_PARAM="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_PROXY_URL_SSM_PARAM:-${BUILDKITE_PLUGIN_GITHUB_FETCH_PROXY_URL_SSM_PARAM:-/github/git-proxy/url}}"
-PROXY_ROLLOUT_SSM_PARAM="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_PROXY_ROLLOUT_SSM_PARAM:-${BUILDKITE_PLUGIN_GITHUB_FETCH_PROXY_ROLLOUT_SSM_PARAM:-/github/git-proxy/rollout}}"
+PROXY_URL_SSM_PARAM="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_PROXY_URL_SSM_PARAM:-${BUILDKITE_PLUGIN_GITHUB_FETCH_PROXY_URL_SSM_PARAM:-/github/git-proxy-experimental/url}}"
+PROXY_ROLLOUT_SSM_PARAM="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_PROXY_ROLLOUT_SSM_PARAM:-${BUILDKITE_PLUGIN_GITHUB_FETCH_PROXY_ROLLOUT_SSM_PARAM:-/github/git-proxy-experimental/rollout}}"
 
 
 # Invoke mktemp in a way which works on macOS and GNU/Linux
@@ -203,8 +203,9 @@ checkout() {
   if [[ -n "${proxy_url:-}" ]]; then
     log_info "Using proxy: ${proxy_url}"
     git config http.proxy "${proxy_url}"
-    git config remote.origin.url "http://github.com/${BUILDKITE_REPO#*@github.com:}"
-    git config remote.origin.pushurl "${BUILDKITE_REPO}"
+    git config remote.origin.url "${BUILDKITE_REPO}"
+    # git config remote.origin.url "http://github.com/${BUILDKITE_REPO#*@github.com:}"
+    # git config remote.origin.pushurl "${BUILDKITE_REPO}"
   else
     log_info "Not using proxy"
   fi
