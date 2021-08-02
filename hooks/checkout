@@ -93,9 +93,9 @@ exit_handler() {
 }
 
 print_repo_dir() {
-  grep -Eo '([a-zA-Z0-9-]+\/[a-zA-Z0-9-]+)' <<< "${BUILDKITE_REPO}" \
+  grep -Eo '([a-zA-Z0-9-]+\/[a-zA-Z0-9-]+)\.git' <<< "${BUILDKITE_REPO}" \
       | tr '[:upper:]' '[:lower:]' \
-      | sed 's/\//__/g'
+      | sed -e 's/.git$//' -e 's/\//__/g'
 }
 
 copy_checkout_from_s3() {
