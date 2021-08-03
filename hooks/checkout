@@ -100,7 +100,7 @@ print_repo_dir() {
 
 copy_checkout_from_s3() {
   local repo_dir=$(print_repo_dir)
-  local s3_url="${1}/repo_dir"
+  local s3_url="${1}/${repo_dir}"
   local checkout
 
   log_info "Getting checkout from S3"
