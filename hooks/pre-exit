@@ -3,13 +3,17 @@
 set -euo pipefail
 
 main() {
-    if git config --get http.proxy; then
-        git config --unset http.proxy
-    fi
-    if git config --get remote.origin.pushurl; then
-        git config --unset remote.origin.pushurl
-    fi
-    git config remote.origin.url "${BUILDKITE_REPO}"
+  if git config --get-regexp 'http.*.proxy' > /dev/null; then
+    for name in $(git config --name-only --get-regexp 'http.*.proxy'); do
+      echo "unset ${name}"
+      git config --unset "${name}"
+    done
+  fi
+  if git config --get remote.origin.pushurl > /dev/null; then
+    echo "unset remote.origin.pushurl"
+    git config --unset remote.origin.pushurl
+  fi
+  git config remote.origin.url "${BUILDKITE_REPO}"
 }
 
 main "$@"

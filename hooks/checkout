@@ -192,6 +192,19 @@ print_proxy_url() {
   fi
 }
 
+unset_proxy() {
+  if git config --get-regexp 'http.*.proxy' > /dev/null; then
+    for name in $(git config --name-only --get-regexp 'http.*.proxy'); do
+      echo "unset ${name}"
+      git config --unset "${name}"
+    done
+  fi
+  if git config --get remote.origin.pushurl > /dev/null; then
+    echo "unset remote.origin.pushurl"
+    git config --unset remote.origin.pushurl
+  fi
+}
+
 checkout() {
   log_info "Starting checkout"
 
@@ -201,12 +214,40 @@ checkout() {
   local proxy_url
   proxy_url=$(print_proxy_url)
   if [[ -n "${proxy_url:-}" ]]; then
-    log_info "Using proxy: ${proxy_url}"
-    git config http.proxy "${proxy_url}"
-    git config remote.origin.url "http://github.com/${BUILDKITE_REPO#*@github.com:}"
-    git config remote.origin.pushurl "${BUILDKITE_REPO}"
+    if [[ "${BUILDKITE_REPO}" =~ ^https://.* ]]; then
+      # BUILDKITE_REPO is in https protocol
+      log_info "Using proxy: ${proxy_url}"
+      git config http."http://github.com/${BUILDKITE_REPO#*@github.com/}".proxy "${proxy_url}"
+      # convert https to http for pull
+      git config remote.origin.url "http://${BUILDKITE_REPO#https://}"
+      git config remote.origin.pushurl "${BUILDKITE_REPO}"
+    elif [[ "${BUILDKITE_REPO}" =~ ^http://.* ]]; then
+      # BUILDKITE_REPO is in http protocol
+      log_info "Using proxy: ${proxy_url}"
+      git config http."http://github.com/${BUILDKITE_REPO#*@github.com/}".proxy "${proxy_url}"
+      git config remote.origin.url "${BUILDKITE_REPO}"
+      # convert http to https for push
+      git config remote.origin.pushurl "https://${BUILDKITE_REPO#http://}"
+    elif [[ "${proxy_url}" =~ ^https://.* ]]; then
+      # BUILDKITE_REPO is in git protocol and proxy requires authentication
+      # since we don't have the token, we can't use the proxy
+      log_info "Not using proxy"
+      unset_proxy
+      git config remote.origin.url "${BUILDKITE_REPO}"
+    else
+      # BUILDKITE_REPO is in git protocol and proxy do not require authentication
+      # therefore we can still use proxy without the token
+      log_info "Using proxy: ${proxy_url}"
+      git config http."http://github.com/${BUILDKITE_REPO#*@github.com:}".proxy "${proxy_url}"
+      # convert git to http for pull
+      git config remote.origin.url "http://github.com/${BUILDKITE_REPO#*@github.com:}"
+      # keep the git url for push (existing behaviour)
+      git config remote.origin.pushurl "${BUILDKITE_REPO}"
+    fi
   else
     log_info "Not using proxy"
+    unset_proxy
+    git config remote.origin.url "${BUILDKITE_REPO}"
   fi
 
   git config protocol.version 2
@@ -327,7 +368,14 @@ setup_git_lfs() {
   if [[ "${CANVA_REPO}" =~ .*github\.com.* ]]; then
     # Workaround for GitHub git-lfs API rate limit error:
     # https://github.com/git-lfs/git-lfs/issues/2133#issuecomment-292557138
-    git config "lfs.https://github.com/${CANVA_REPO#*@github.com:}/info/lfs.access" basic
+    # Also setting both https and http URLs, so that if git-proxy requires http URL as remote it should still work.
+    if [[ "${CANVA_REPO}" =~ ^https?://.* ]]; then
+      git config "lfs.https://github.com/${CANVA_REPO#*@github.com/}/info/lfs.access" basic
+      git config "lfs.http://github.com/${CANVA_REPO#*@github.com/}/info/lfs.access" basic
+    else
+      git config "lfs.https://github.com/${CANVA_REPO#*@github.com:}/info/lfs.access" basic
+      git config "lfs.http://github.com/${CANVA_REPO#*@github.com:}/info/lfs.access" basic
+    fi
   fi
   # make sure that the lfs hooks & filters are installed locally in the repo
   # in case they have not been installed in the S3 copy
