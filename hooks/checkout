@@ -454,6 +454,8 @@ main() {
   echo "{\"event_type\":\"github-plugin-stats\",\"repo_initialisation_method\":\"${INITILISATION_METHOD}\",\"duration\":\"${duration}\",\"retry\":\"${retry}\"}" | logger
   test $? -eq 0 || log_info "Fail to log statistics. Ignore error."
 
+  # report checkout duration to datadog agent
+  echo -n "github.checkout_time:${duration}|d" | nc -4u -w0 127.0.0.1 8125
 }
 
 main "$@"
