@@ -455,7 +455,9 @@ main() {
   test $? -eq 0 || log_info "Fail to log statistics. Ignore error."
 
   # report checkout duration to datadog agent
-  echo -n "github.checkout_time:${duration}|d" | nc -4u -w0 127.0.0.1 8125
+  local repo_dir
+  repo_dir=$(print_repo_dir)
+  echo -n "github.checkout_time:${duration}|d|repo:${repo_dir}" | nc -4u -w0 127.0.0.1 8125
 }
 
 main "$@"
