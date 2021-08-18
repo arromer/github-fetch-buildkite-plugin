@@ -13,6 +13,14 @@ main() {
     echo "unset remote.origin.pushurl"
     git config --unset remote.origin.pushurl
   fi
+  if git config --get remote.origin.lfsurl > /dev/null; then
+    echo "unset remote.origin.lfsurl"
+    git config --unset remote.origin.lfsurl
+  fi
+  if git config --get remote.origin.lfspushurl > /dev/null; then
+    echo "unset remote.origin.lfspushurl"
+    git config --unset remote.origin.lfspushurl
+  fi
   git config remote.origin.url "${BUILDKITE_REPO}"
 }
 

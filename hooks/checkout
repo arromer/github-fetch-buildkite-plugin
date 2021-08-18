@@ -203,6 +203,14 @@ unset_proxy() {
     echo "unset remote.origin.pushurl"
     git config --unset remote.origin.pushurl
   fi
+  if git config --get remote.origin.lfsurl > /dev/null; then
+    echo "unset remote.origin.lfsurl"
+    git config --unset remote.origin.lfsurl
+  fi
+  if git config --get remote.origin.lfspushurl > /dev/null; then
+    echo "unset remote.origin.lfspushurl"
+    git config --unset remote.origin.lfspushurl
+  fi
 }
 
 checkout() {
@@ -221,13 +229,18 @@ checkout() {
       # convert https to http for pull
       git config remote.origin.url "http://${BUILDKITE_REPO#https://}"
       git config remote.origin.pushurl "${BUILDKITE_REPO}"
+      # do not use proxy for lfs
+      git config remote.origin.lfsurl "${BUILDKITE_REPO}/info/lfs"
+      git config remote.origin.lfspushurl "${BUILDKITE_REPO}/info/lfs"
     elif [[ "${BUILDKITE_REPO}" =~ ^http://.* ]]; then
       # BUILDKITE_REPO is in http protocol
       log_info "Using proxy: ${proxy_url}"
       git config http."http://github.com/${BUILDKITE_REPO#*@github.com/}".proxy "${proxy_url}"
       git config remote.origin.url "${BUILDKITE_REPO}"
-      # convert http to https for push
+      # convert http to https for push and lfs
       git config remote.origin.pushurl "https://${BUILDKITE_REPO#http://}"
+      git config remote.origin.lfsurl "https://${BUILDKITE_REPO#http://}/info/lfs"
+      git config remote.origin.lfspushurl "https://${BUILDKITE_REPO#http://}/info/lfs"
     elif [[ "${proxy_url}" =~ ^https://.* ]]; then
       # BUILDKITE_REPO is in git protocol and proxy requires authentication
       # since we don't have the token, we can't use the proxy
@@ -243,6 +256,10 @@ checkout() {
       git config remote.origin.url "http://github.com/${BUILDKITE_REPO#*@github.com:}"
       # keep the git url for push (existing behaviour)
       git config remote.origin.pushurl "${BUILDKITE_REPO}"
+      # convert to https for lfs
+      # see https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#guessing-the-server
+      git config remote.origin.lfsurl "https://github.com/${BUILDKITE_REPO#*@github.com:}/info/lfs"
+      git config remote.origin.lfspushurl "https://github.com/${BUILDKITE_REPO#*@github.com:}/info/lfs"
     fi
   else
     log_info "Not using proxy"
@@ -371,10 +388,8 @@ setup_git_lfs() {
     # Also setting both https and http URLs, so that if git-proxy requires http URL as remote it should still work.
     if [[ "${CANVA_REPO}" =~ ^https?://.* ]]; then
       git config "lfs.https://github.com/${CANVA_REPO#*@github.com/}/info/lfs.access" basic
-      git config "lfs.http://github.com/${CANVA_REPO#*@github.com/}/info/lfs.access" basic
     else
       git config "lfs.https://github.com/${CANVA_REPO#*@github.com:}/info/lfs.access" basic
-      git config "lfs.http://github.com/${CANVA_REPO#*@github.com:}/info/lfs.access" basic
     fi
   fi
   # make sure that the lfs hooks & filters are installed locally in the repo
