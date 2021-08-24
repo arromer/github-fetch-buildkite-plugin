@@ -175,16 +175,14 @@ print_ssm_param(){
 }
 
 print_proxy_url() {
+  local repo_dir
+  repo_dir=$(print_repo_dir)
   local proxy_url
-  proxy_url=$(print_ssm_param "${PROXY_URL_SSM_PARAM}")
+  proxy_url=$(print_ssm_param "${PROXY_URL_SSM_PARAM}/${repo_dir}")
   echo "proxy url param is ${proxy_url}" 1>&2
   if [[ -n "${proxy_url:-}" ]]; then
-    local repo_dir
-    repo_dir=$(print_repo_dir)
-    local proxy_rollout_param="${PROXY_ROLLOUT_SSM_PARAM}/${repo_dir}"
-
     local rollout
-    rollout=$(print_ssm_param "${proxy_rollout_param}")
+    rollout=$(print_ssm_param "${PROXY_ROLLOUT_SSM_PARAM}/${repo_dir}")
     echo "proxy rollout param is ${rollout}" 1>&2
     if [[ -n "${rollout:-}" && $((1 + $RANDOM % 100)) -le "${rollout}" ]]; then
       echo "${proxy_url}"
