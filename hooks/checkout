@@ -467,6 +467,7 @@ main() {
   local repo_dir
   repo_dir=$(print_repo_dir)
   echo "TEMP: THIS IS THE FORKED VERSION"
+  echo "github.checkout_time:${duration}000|ms|#repo:${repo_dir}"
   echo -n "github.checkout_time:${duration}000|ms|#repo:${repo_dir}" | nc -4u -w0 127.0.0.1 8125 || log_info "Failed to log statistics. Ignoring error."
 }
 
