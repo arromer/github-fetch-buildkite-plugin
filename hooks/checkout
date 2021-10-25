@@ -71,7 +71,7 @@ check_set() {
   local name="$1"
   if [[ -z "${!name:-}" ]]; then
     echo "ERROR: ${name} not set"
-    exit 1
+    return 1
   fi
 }
 
@@ -305,7 +305,7 @@ checkout() {
     # full commit sha is required
     if [[ ! "${BUILDKITE_COMMIT}" =~ [0-9a-f]{40} ]]; then
       log_info "Commit SHA ${BUILDKITE_COMMIT} is not valid. Full SHA is required."
-      exit 1
+      return 1
     fi
 
     log_info "Fetch BUILDKITE_COMMIT=${BUILDKITE_COMMIT}"
@@ -460,7 +460,7 @@ main() {
 
     if [[ "${retry}" -ge "${max_retry}" ]]; then
       log_info "main:Maximum retry reached."
-      exit "${exit_code}"
+      return "${exit_code}"
     fi
 
   done
