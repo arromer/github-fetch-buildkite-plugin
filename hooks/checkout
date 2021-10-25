@@ -52,6 +52,10 @@ log_and_run() {
   "$@" &>> "${git_log}"
 }
 
+put_metric() {
+  echo -n "$@" | nc -4u -w0 127.0.0.1 8125 || log_info "Failed to log statistics. Ignoring error."
+}
+
 # Checks if an env var is set
 # Arguments:
 # $1: var name
@@ -59,7 +63,7 @@ check_set() {
   local name="$1"
   if [[ -z "${!name:-}" ]]; then
     echo "ERROR: ${name} not set"
-    exit 1
+    return 1
   fi
 }
 
@@ -82,6 +86,13 @@ check_timeout_exit_code() {
 }
 
 exit_handler() {
+  local exit_code=$?
+  if [[ "${exit_code}" -ne 0 ]]; then
+    local repo_dir
+    repo_dir=$(print_repo_dir)
+    put_metric "github.checkout_exit_code:${exit_code}|h|#repo:${repo_dir}"
+  fi
+
   if [[ -f "${git_log}" ]]; then
     mv "${git_log}" "${git_log}.log"
     buildkite-agent artifact upload "${git_log}.log"
@@ -293,7 +304,7 @@ checkout() {
     # full commit sha is required
     if [[ ! "${BUILDKITE_COMMIT}" =~ [0-9a-f]{40} ]]; then
       log_info "Commit SHA ${BUILDKITE_COMMIT} is not valid. Full SHA is required."
-      exit 1
+      return 1
     fi
 
     log_info "Fetch BUILDKITE_COMMIT=${BUILDKITE_COMMIT}"
@@ -447,7 +458,7 @@ main() {
 
     if [[ "${retry}" -ge "${max_retry}" ]]; then
       log_info "main:Maximum retry reached."
-      exit "${exit_code}"
+      return "${exit_code}"
     fi
 
   done
@@ -466,7 +477,7 @@ main() {
   # report checkout duration to datadog agent
   local repo_dir
   repo_dir=$(print_repo_dir)
-  echo -n "github.checkout_time:${duration}000|ms|#repo:${repo_dir}" | nc -4u -w0 127.0.0.1 8125 || log_info "Failed to log statistics. Ignoring error."
+  put_metric "github.checkout_time:${duration}000|ms|#repo:${repo_dir}"
 }
 
 main "$@"
