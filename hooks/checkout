@@ -52,6 +52,18 @@ log_and_run() {
   "$@" &>> "${git_log}"
 }
 
+error_handler() {
+  local exit_code=$?
+  local repo_dir
+  repo_dir=$(print_repo_dir)
+  put_metric "github.checkout_exit_code:${exit_code}|h|#repo:${repo_dir}"
+  exit_handler
+}
+
+put_metric() {
+  echo -n "$@" | nc -4u -w0 127.0.0.1 8125 || log_info "Failed to log statistics. Ignoring error."
+}
+
 # Checks if an env var is set
 # Arguments:
 # $1: var name
@@ -404,7 +416,8 @@ main() {
   check_set BUILDKITE_BUILD_CHECKOUT_PATH
 
   # shellcheck disable=SC2064
-  trap exit_handler EXIT
+  trap exit_handler 0
+  trap error_handler ERR
 
   local git_lfs_skip_smudge_was_set=true
   (env | grep --quiet GIT_LFS_SKIP_SMUDGE=) || git_lfs_skip_smudge_was_set=false
@@ -466,7 +479,7 @@ main() {
   # report checkout duration to datadog agent
   local repo_dir
   repo_dir=$(print_repo_dir)
-  echo -n "github.checkout_time:${duration}000|ms|#repo:${repo_dir}" | nc -4u -w0 127.0.0.1 8125 || log_info "Failed to log statistics. Ignoring error."
+  put_metric "github.checkout_time:${duration}000|ms|#repo:${repo_dir}"
 }
 
 main "$@"
