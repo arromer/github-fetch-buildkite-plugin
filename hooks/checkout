@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -euxo pipefail
 
 if [[ -n "${BUILDKITE_PLUGIN_GITHUB_FETCH_BASH_PREFIX:-}" ]]; then
   eval "${BUILDKITE_PLUGIN_GITHUB_FETCH_BASH_PREFIX}"
@@ -347,7 +347,7 @@ checkout() {
     log_info "Checkout done"
   fi
 
-  return "${exit_code}"
+  return 42
 }
 
 clean_checkout_dir() {
