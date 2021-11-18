@@ -25,10 +25,6 @@ GIT_REMOTE_TIMEOUT="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT:-0}"
 # If not specified by the user, it defaults to 110 which is the standard exit code for connection timeout.
 GIT_REMOTE_TIMEOUT_EXIT_CODE="${BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT_EXIT_CODE:-110}"
 
-# The "CI-Source" extra header that will be sent to git remote.
-# This helps correlate Buildkite logs and git remote logs (e.g. Goblet or Github.com)
-GIT_EXTRA_HEADER_CI_SOURCE="http.extraHeader=CI-Source: ${BUILDKITE_BUILD_URL}#${BUILDKITE_JOB_ID}"
-
 # Set to `true` forces a fresh clone from the remote to initialize the local copy for the first time
 # on the agent.
 #
@@ -294,7 +290,7 @@ checkout() {
   if [[ -z "${BUILDKITE_COMMIT:-}" || "${BUILDKITE_COMMIT}" == "HEAD" ]]; then
     log_info "Commit ID is not supplied. Fetch from HEAD."
     exit_code=0
-    GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git -c "${GIT_EXTRA_HEADER_CI_SOURCE}" fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
+    GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
     check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
     if [[ "${exit_code}" -ne 0 ]]; then
       log_info "Git returned error code:${exit_code}"
@@ -313,7 +309,7 @@ checkout() {
 
     log_info "Fetch BUILDKITE_COMMIT=${BUILDKITE_COMMIT}"
     exit_code=0
-    GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git -c "${GIT_EXTRA_HEADER_CI_SOURCE}" fetch -v --no-tags origin "${BUILDKITE_COMMIT}" || exit_code=$?
+    GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_COMMIT}" || exit_code=$?
     check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}" || exit_code=$?
     # If the commit isn't there the ref that was pointing to it might have
     # been force pushed in the meantime. Exit with ESTALE to signify the stale
@@ -326,7 +322,7 @@ checkout() {
     elif [[ "${exit_code}" -ne 0 ]]; then
       log_info "Fail to checkout commit:${BUILDKITE_COMMIT}. Checkout branch:${BUILDKITE_BRANCH} instead."
       exit_code=0
-      GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git -c "${GIT_EXTRA_HEADER_CI_SOURCE}" fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
+      GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
       check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}" || exit_code=$?
       if [[ "${exit_code}" -ne 0 ]]; then
         log_info "Git returned error code:${exit_code}"
@@ -429,6 +425,10 @@ main() {
     export GIT_LFS_SKIP_SMUDGE=1
     echo >&2 "git-lfs not installed, skipping lfs"
   fi
+
+  # Update git userAgent to pass buildkite URL, capped at 200 chars
+  GIT_HTTP_USER_AGENT="git/$(git --version | tr -d 'git version ') (${BUILDKITE_BUILD_URL}#${BUILDKITE_JOB_ID})"
+  export GIT_HTTP_USER_AGENT="${GIT_HTTP_USER_AGENT:0:200}"
 
   local max_retry=5
   local retry=0
