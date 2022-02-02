@@ -73,20 +73,20 @@ export_canva_origin_url() {
   export BUILDKITE_REPO="${origin_url}"
 }
 
-export_buildkite_repo() {
-  log_info "starting pre-checkout"
-  # Converts repo url from git@github.com:Org/repo to https://github.com/Org/repo
-  export CANVA_REPO="https://github.com/${BUILDKITE_REPO#*@github.com:}"
-  export BUILDKITE_REPO="https://github.com/${BUILDKITE_REPO#*@github.com:}"
-}
-
 main() {
   if [[ -n "${SSM_PARAM:-}" ]]; then
     export_canva_origin_url
   else
     log_info "ssm param not configured skipping"
   fi
-  export_buildkite_repo
+  if [[ -n "${USE_HTTPS_REPO_URL:-}" ]]; then
+    # Converts repo url from git@github.com:Org/repo (SSH) to https://github.com/Org/repo
+    export CANVA_REPO="https://github.com/${BUILDKITE_REPO#*@github.com:}"
+    export BUILDKITE_REPO="https://github.com/${BUILDKITE_REPO#*@github.com:}"
+  else
+    # Keep repo url as git@github.com:Org/repo (SSH)
+    export CANVA_REPO="${BUILDKITE_REPO}"
+  fi
 }
 
 main "$@"
