@@ -7,8 +7,6 @@ configuration:
   properties:
     s3_url:
       type: string
-    app_id:
-      type: number
-    app_secret:
+    use_https_repo_url:
       type: string
 public: true
