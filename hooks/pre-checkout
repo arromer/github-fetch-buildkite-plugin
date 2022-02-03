@@ -80,7 +80,7 @@ main() {
   else
     log_info "ssm param not configured skipping"
   fi
-  if [[ -n "${USE_HTTPS_REPO_URL:-}" ]]; then
+  if [[ "${USE_HTTPS_REPO_URL:-false}" = "true" ]]; then
     # Converts repo url from git@github.com:Org/repo (SSH) to https://github.com/Org/repo
     export CANVA_REPO="https://github.com/${BUILDKITE_REPO#*@github.com:}"
     export BUILDKITE_REPO="https://github.com/${BUILDKITE_REPO#*@github.com:}"
