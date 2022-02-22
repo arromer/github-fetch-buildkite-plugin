@@ -120,17 +120,14 @@ main() {
   else
     log_info "ssm param not configured skipping"
   fi
-  if [[ "${USE_HTTPS_REPO_URL:-false}" = "true" ]]; then
 
-    # DEPRECATED (app ID and secret will be removed, only export plain HTTPS urls from else case in the future)
-    if [[ -n "${GITHUB_APP_ID:-}" ]] && [[ -n "${GITHUB_APP_SECRET:-}" ]]; then
-      export_legacy_https_repo
-    else
-      # Converts repo url from git@github.com:Org/repo (SSH) to https://github.com/Org/repo
-      export CANVA_REPO="https://github.com/${BUILDKITE_REPO#*@github.com:}"
-      export BUILDKITE_REPO="https://github.com/${BUILDKITE_REPO#*@github.com:}"
-    fi
-
+  # DEPRECATED (app ID and secret will be removed, only export plain HTTPS urls from else case in the future)
+  if [[ -n "${GITHUB_APP_ID:-}" ]] && [[ -n "${GITHUB_APP_SECRET:-}" ]]; then
+    export_legacy_https_repo
+  elif [[ "${USE_HTTPS_REPO_URL:-false}" = "true" ]]; then
+    # Converts repo url from git@github.com:Org/repo (SSH) to https://github.com/Org/repo
+    export CANVA_REPO="https://github.com/${BUILDKITE_REPO#*@github.com:}"
+    export BUILDKITE_REPO="https://github.com/${BUILDKITE_REPO#*@github.com:}"
   else
     # Keep repo url as git@github.com:Org/repo (SSH)
     export CANVA_REPO="${BUILDKITE_REPO}"
