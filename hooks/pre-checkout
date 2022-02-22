@@ -4,6 +4,11 @@ set -euo pipefail
 
 SSM_PARAM="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_SSM_PARAM:-${BUILDKITE_PLUGIN_GITHUB_FETCH_SSM_PARAM:-}}"
 USE_HTTPS_REPO_URL="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_USE_HTTPS_REPO_URL:-${BUILDKITE_PLUGIN_GITHUB_FETCH_USE_HTTPS_REPO_URL:-${USE_HTTPS_REPO_URL:-}}}"
+
+# DEPRECATED (app ID and secret will be removed from agents in favour of credentials helper)
+GITHUB_APP_ID="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_APP_ID:-${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_ID:-${GITHUB_APP_ID:-}}}"
+GITHUB_APP_SECRET="${GH_CONTROL_USER_ENV_GITHUB_CHECKOUT_PLUGIN_APP_SECRET:-${BUILDKITE_PLUGIN_GITHUB_FETCH_APP_SECRET:-${GITHUB_APP_SECRET:-}}}"
+
 OUTFILE=$(mktemp)
 trap 'rm ${OUTFILE}' EXIT
 # Prints an info line to stdout.
@@ -74,13 +79,52 @@ export_canva_origin_url() {
   export BUILDKITE_REPO="${origin_url}"
 }
 
+# DEPRECTATED (once app ID and secred are removed, this function can be removed)
+export_legacy_https_repo() {
+  local payload
+  payload=$(jq -n --arg AppID "${GITHUB_APP_ID}" \
+            --arg SecretId "${GITHUB_APP_SECRET}" \
+            '{$AppID, $SecretId}')
+
+  # shellcheck disable=SC2064
+  local aws_version
+  aws_version=$(print_aws_version)
+  if [[ "${aws_version}" == "2" ]]; then
+    # when running aws cli v2, --cli-binary-format raw-in-base64-out is required
+    aws lambda invoke \
+        --region us-east-1 \
+        --function-name github-app-token:stable \
+        --cli-binary-format raw-in-base64-out \
+        --payload "${payload}" \
+        "${OUTFILE}"
+  else
+    aws lambda invoke \
+        --region us-east-1 \
+        --function-name github-app-token:stable \
+        --payload "${payload}" \
+        "${OUTFILE}"
+  fi
+
+  local token
+  token=$(jq -r '.body' <"${OUTFILE}" | jq -r '.token')
+
+  export GITHUB_FETCH_APP_ACCESS_TOKEN="${token}"
+  # Converts repo url from git@github.com:Org/repo to https://x-access-token:token@github.com/Org/repo
+  export CANVA_REPO="https://x-access-token:${token}@github.com/${BUILDKITE_REPO#*@github.com:}"
+  export BUILDKITE_REPO="https://x-access-token:${token}@github.com/${BUILDKITE_REPO#*@github.com:}"
+}
+
 main() {
   if [[ -n "${SSM_PARAM:-}" ]]; then
     export_canva_origin_url
   else
     log_info "ssm param not configured skipping"
   fi
-  if [[ "${USE_HTTPS_REPO_URL:-false}" = "true" ]]; then
+
+  # DEPRECATED (app ID and secret will be removed, only export plain HTTPS urls from else case in the future)
+  if [[ -n "${GITHUB_APP_ID:-}" ]] && [[ -n "${GITHUB_APP_SECRET:-}" ]]; then
+    export_legacy_https_repo
+  elif [[ "${USE_HTTPS_REPO_URL:-false}" = "true" ]]; then
     # Converts repo url from git@github.com:Org/repo (SSH) to https://github.com/Org/repo
     export CANVA_REPO="https://github.com/${BUILDKITE_REPO#*@github.com:}"
     export BUILDKITE_REPO="https://github.com/${BUILDKITE_REPO#*@github.com:}"

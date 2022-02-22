@@ -435,7 +435,13 @@ main() {
   while true; do
     initialize_local_repo
 
-    log_info "Setting origin to ${CANVA_REPO}"
+    # DEPRECATED (once app ID and secret are removed, only the else case remains)
+    if [[ -v GITHUB_FETCH_APP_ACCESS_TOKEN ]]; then
+      log_info "Setting origin to https://x-access-token:[[masked]]@github.com/${CANVA_REPO#*github.com/}"
+    else
+      log_info "Setting origin to ${CANVA_REPO}"
+    fi
+
     git remote set-url origin "${CANVA_REPO}"
 
     if command -v git-lfs >/dev/null; then
