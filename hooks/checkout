@@ -222,7 +222,11 @@ unset_proxy() {
   fi
 }
 
+# Arguments:
+# $1: Enable proxy. Setting it to 1 to enable git proxy
 checkout() {
+  local enable_proxy="$1"
+
   log_info "Starting checkout"
 
   local exit_code
@@ -230,10 +234,17 @@ checkout() {
 
   local proxy_url
   proxy_url=$(print_proxy_url)
+  local using_proxy
   if [[ -n "${proxy_url:-}" ]]; then
-    if [[ "${BUILDKITE_REPO}" =~ ^https://.* ]]; then
+    if [[ "${enable_proxy}" -ne 1 ]]; then
+      log_info "Not using proxy (disabled)"
+      using_proxy=0
+      unset_proxy
+      git config remote.origin.url "${BUILDKITE_REPO}"
+    elif [[ "${BUILDKITE_REPO}" =~ ^https://.* ]]; then
       # BUILDKITE_REPO is in https protocol
       log_info "Using proxy: ${proxy_url}"
+      using_proxy=1
       git config http."http://github.com/${BUILDKITE_REPO#*@github.com/}".proxy "${proxy_url}"
       # convert https to http for pull
       git config remote.origin.url "http://${BUILDKITE_REPO#https://}"
@@ -244,6 +255,7 @@ checkout() {
     elif [[ "${BUILDKITE_REPO}" =~ ^http://.* ]]; then
       # BUILDKITE_REPO is in http protocol
       log_info "Using proxy: ${proxy_url}"
+      using_proxy=1
       git config http."http://github.com/${BUILDKITE_REPO#*@github.com/}".proxy "${proxy_url}"
       git config remote.origin.url "${BUILDKITE_REPO}"
       # convert http to https for push and lfs
@@ -254,12 +266,14 @@ checkout() {
       # BUILDKITE_REPO is in git protocol and proxy requires authentication
       # since we don't have the token, we can't use the proxy
       log_info "Not using proxy"
+      using_proxy=0
       unset_proxy
       git config remote.origin.url "${BUILDKITE_REPO}"
     else
       # BUILDKITE_REPO is in git protocol and proxy do not require authentication
       # therefore we can still use proxy without the token
       log_info "Using proxy: ${proxy_url}"
+      using_proxy=1
       git config http."http://github.com/${BUILDKITE_REPO#*@github.com:}".proxy "${proxy_url}"
       # convert git to http for pull
       git config remote.origin.url "http://github.com/${BUILDKITE_REPO#*@github.com:}"
@@ -272,6 +286,7 @@ checkout() {
     fi
   else
     log_info "Not using proxy"
+    using_proxy=0
     unset_proxy
     git config remote.origin.url "${BUILDKITE_REPO}"
   fi
@@ -432,6 +447,7 @@ main() {
 
   local max_retry=5
   local retry=0
+  local disable_proxy_after_retry=3
   while true; do
     initialize_local_repo
 
@@ -448,9 +464,16 @@ main() {
       setup_git_lfs
     fi
 
+    local enable_proxy
+    if [[ "${retry}" -lt "${disable_proxy_after_retry}" ]]; then
+      enable_proxy=1
+    else
+      enable_proxy=0
+    fi
+
     local exit_code
     exit_code=0
-    checkout || exit_code=$?
+    checkout ${enable_proxy} || exit_code=$?
 
     if [[ "${exit_code}" -eq 0 ]]; then
       log_info "main:Checkout successful."
