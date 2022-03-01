@@ -302,8 +302,12 @@ checkout() {
 
   git config remote.origin.fetch
 
+  local repo_dir
+  repo_dir=$(print_repo_dir)
+
   if [[ -z "${BUILDKITE_COMMIT:-}" || "${BUILDKITE_COMMIT}" == "HEAD" ]]; then
     log_info "Commit ID is not supplied. Fetch from HEAD."
+    put_metric "github.checkout_count:1|c|#repo:${repo_dir},fetch:1,ref:head,proxy:${using_proxy}"
     exit_code=0
     GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
     check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
@@ -314,6 +318,7 @@ checkout() {
     GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run git checkout -f FETCH_HEAD || exit_code=$?
   elif git cat-file -e "${BUILDKITE_COMMIT}"; then
     log_info "Checkout BUILDKITE_COMMIT=${BUILDKITE_COMMIT}"
+    put_metric "github.checkout_count:1|c|#repo:${repo_dir},fetch:0,ref:hash,proxy:${using_proxy}"
     GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run git checkout -f "${BUILDKITE_COMMIT}" || exit_code=$?
   else
     # full commit sha is required
@@ -323,6 +328,7 @@ checkout() {
     fi
 
     log_info "Fetch BUILDKITE_COMMIT=${BUILDKITE_COMMIT}"
+    put_metric "github.checkout_count:1|c|#repo:${repo_dir},fetch:1,ref:hash,proxy:${using_proxy}"
     exit_code=0
     GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_COMMIT}" || exit_code=$?
     check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}" || exit_code=$?
@@ -336,6 +342,7 @@ checkout() {
     # being advertised. In that case fetch the branch instead.
     elif [[ "${exit_code}" -ne 0 ]]; then
       log_info "Fail to checkout commit:${BUILDKITE_COMMIT}. Checkout branch:${BUILDKITE_BRANCH} instead."
+      put_metric "github.checkout_count:1|c|#repo:${repo_dir},fetch:1,ref:branch,proxy:${using_proxy}"
       exit_code=0
       GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
       check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}" || exit_code=$?
