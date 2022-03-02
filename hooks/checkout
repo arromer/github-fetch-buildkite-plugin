@@ -222,7 +222,11 @@ unset_proxy() {
   fi
 }
 
+# Arguments:
+# $1: Enable proxy. Setting it to 1 to enable git proxy
 checkout() {
+  local enable_proxy="$1"
+
   log_info "Starting checkout"
 
   local exit_code
@@ -230,10 +234,17 @@ checkout() {
 
   local proxy_url
   proxy_url=$(print_proxy_url)
+  local using_proxy
   if [[ -n "${proxy_url:-}" ]]; then
-    if [[ "${BUILDKITE_REPO}" =~ ^https://.* ]]; then
+    if [[ "${enable_proxy}" -ne 1 ]]; then
+      log_info "Not using proxy (disabled)"
+      using_proxy=0
+      unset_proxy
+      git config remote.origin.url "${BUILDKITE_REPO}"
+    elif [[ "${BUILDKITE_REPO}" =~ ^https://.* ]]; then
       # BUILDKITE_REPO is in https protocol
       log_info "Using proxy: ${proxy_url}"
+      using_proxy=1
       git config http."http://github.com/${BUILDKITE_REPO#*@github.com/}".proxy "${proxy_url}"
       # convert https to http for pull
       git config remote.origin.url "http://${BUILDKITE_REPO#https://}"
@@ -244,6 +255,7 @@ checkout() {
     elif [[ "${BUILDKITE_REPO}" =~ ^http://.* ]]; then
       # BUILDKITE_REPO is in http protocol
       log_info "Using proxy: ${proxy_url}"
+      using_proxy=1
       git config http."http://github.com/${BUILDKITE_REPO#*@github.com/}".proxy "${proxy_url}"
       git config remote.origin.url "${BUILDKITE_REPO}"
       # convert http to https for push and lfs
@@ -254,12 +266,14 @@ checkout() {
       # BUILDKITE_REPO is in git protocol and proxy requires authentication
       # since we don't have the token, we can't use the proxy
       log_info "Not using proxy"
+      using_proxy=0
       unset_proxy
       git config remote.origin.url "${BUILDKITE_REPO}"
     else
       # BUILDKITE_REPO is in git protocol and proxy do not require authentication
       # therefore we can still use proxy without the token
       log_info "Using proxy: ${proxy_url}"
+      using_proxy=1
       git config http."http://github.com/${BUILDKITE_REPO#*@github.com:}".proxy "${proxy_url}"
       # convert git to http for pull
       git config remote.origin.url "http://github.com/${BUILDKITE_REPO#*@github.com:}"
@@ -272,6 +286,7 @@ checkout() {
     fi
   else
     log_info "Not using proxy"
+    using_proxy=0
     unset_proxy
     git config remote.origin.url "${BUILDKITE_REPO}"
   fi
@@ -287,8 +302,12 @@ checkout() {
 
   git config remote.origin.fetch
 
+  local repo_dir
+  repo_dir=$(print_repo_dir)
+
   if [[ -z "${BUILDKITE_COMMIT:-}" || "${BUILDKITE_COMMIT}" == "HEAD" ]]; then
     log_info "Commit ID is not supplied. Fetch from HEAD."
+    put_metric "github.checkout_count:1|c|#repo:${repo_dir},fetch:1,ref:head,proxy:${using_proxy}"
     exit_code=0
     GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
     check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}"
@@ -299,6 +318,7 @@ checkout() {
     GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run git checkout -f FETCH_HEAD || exit_code=$?
   elif git cat-file -e "${BUILDKITE_COMMIT}"; then
     log_info "Checkout BUILDKITE_COMMIT=${BUILDKITE_COMMIT}"
+    put_metric "github.checkout_count:1|c|#repo:${repo_dir},fetch:0,ref:hash,proxy:${using_proxy}"
     GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run git checkout -f "${BUILDKITE_COMMIT}" || exit_code=$?
   else
     # full commit sha is required
@@ -308,6 +328,7 @@ checkout() {
     fi
 
     log_info "Fetch BUILDKITE_COMMIT=${BUILDKITE_COMMIT}"
+    put_metric "github.checkout_count:1|c|#repo:${repo_dir},fetch:1,ref:hash,proxy:${using_proxy}"
     exit_code=0
     GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_COMMIT}" || exit_code=$?
     check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}" || exit_code=$?
@@ -321,6 +342,7 @@ checkout() {
     # being advertised. In that case fetch the branch instead.
     elif [[ "${exit_code}" -ne 0 ]]; then
       log_info "Fail to checkout commit:${BUILDKITE_COMMIT}. Checkout branch:${BUILDKITE_BRANCH} instead."
+      put_metric "github.checkout_count:1|c|#repo:${repo_dir},fetch:1,ref:branch,proxy:${using_proxy}"
       exit_code=0
       GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run "${PLUGIN_DIR}/bin/timeout" "${GIT_REMOTE_TIMEOUT}" git fetch -v --no-tags origin "${BUILDKITE_BRANCH}" || exit_code=$?
       check_timeout_exit_code "${exit_code}" "${GIT_REMOTE_TIMEOUT_EXIT_CODE}" || exit_code=$?
@@ -432,6 +454,7 @@ main() {
 
   local max_retry=5
   local retry=0
+  local disable_proxy_after_retry=3
   while true; do
     initialize_local_repo
 
@@ -448,9 +471,16 @@ main() {
       setup_git_lfs
     fi
 
+    local enable_proxy
+    if [[ "${retry}" -lt "${disable_proxy_after_retry}" ]]; then
+      enable_proxy=1
+    else
+      enable_proxy=0
+    fi
+
     local exit_code
     exit_code=0
-    checkout || exit_code=$?
+    checkout ${enable_proxy} || exit_code=$?
 
     if [[ "${exit_code}" -eq 0 ]]; then
       log_info "main:Checkout successful."
