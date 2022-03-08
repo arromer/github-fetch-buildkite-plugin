@@ -256,7 +256,7 @@ checkout() {
       # BUILDKITE_REPO is in http protocol
       log_info "Using proxy: ${proxy_url}"
       using_proxy=1
-      git config http."http://github.com/${BUILDKITE_REPO#*github.com/}".proxy "${proxy_url}"
+      git config http."${BUILDKITE_REPO}".proxy "${proxy_url}"
       git config remote.origin.url "${BUILDKITE_REPO}"
       # convert http to https for push and lfs
       git config remote.origin.pushurl "https://${BUILDKITE_REPO#http://}"
