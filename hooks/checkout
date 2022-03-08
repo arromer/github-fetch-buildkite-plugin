@@ -245,7 +245,7 @@ checkout() {
       # BUILDKITE_REPO is in https protocol
       log_info "Using proxy: ${proxy_url}"
       using_proxy=1
-      git config http."http://github.com/${BUILDKITE_REPO#*@github.com/}".proxy "${proxy_url}"
+      git config http."http://github.com/${BUILDKITE_REPO#*github.com/}".proxy "${proxy_url}"
       # convert https to http for pull
       git config remote.origin.url "http://${BUILDKITE_REPO#https://}"
       git config remote.origin.pushurl "${BUILDKITE_REPO}"
@@ -256,7 +256,7 @@ checkout() {
       # BUILDKITE_REPO is in http protocol
       log_info "Using proxy: ${proxy_url}"
       using_proxy=1
-      git config http."http://github.com/${BUILDKITE_REPO#*@github.com/}".proxy "${proxy_url}"
+      git config http."http://github.com/${BUILDKITE_REPO#*github.com/}".proxy "${proxy_url}"
       git config remote.origin.url "${BUILDKITE_REPO}"
       # convert http to https for push and lfs
       git config remote.origin.pushurl "https://${BUILDKITE_REPO#http://}"
@@ -418,7 +418,7 @@ setup_git_lfs() {
     # https://github.com/git-lfs/git-lfs/issues/2133#issuecomment-292557138
     # Also setting both https and http URLs, so that if git-proxy requires http URL as remote it should still work.
     if [[ "${CANVA_REPO}" =~ ^https?://.* ]]; then
-      git config "lfs.https://github.com/${CANVA_REPO#*@github.com/}/info/lfs.access" basic
+      git config "lfs.${CANVA_REPO}/info/lfs.access" basic
     else
       git config "lfs.https://github.com/${CANVA_REPO#*@github.com:}/info/lfs.access" basic
     fi
