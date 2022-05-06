@@ -336,7 +336,7 @@ checkout() {
     # been force pushed in the meantime. Exit with ESTALE to signify the stale
     # branch reference in that case.
     if [[ "${exit_code}" -eq 128 ]]; then
-      log_info "Commit SHA ${BUILDKITE_COMMIT} does not exists. The ref might have been force pushed."
+      log_info "Fail to fetch commit:${BUILDKITE_COMMIT}. Check ${git_log} under Artifacts tab for details."
       return 116
     # If checking out the commit fails, it might be because the commit isn't
     # being advertised. In that case fetch the branch instead.
@@ -357,7 +357,7 @@ checkout() {
     exit_code=0
     GIT_TRACE=1 GIT_CURL_VERBOSE=1 log_and_run git checkout -f "${BUILDKITE_COMMIT}" || exit_code=$?
     if [[ "${exit_code}" -eq 128 ]]; then
-      log_info "Commit SHA ${BUILDKITE_COMMIT} does not exists. The ref might have been force pushed."
+      log_info "Fail to checkout commit:${BUILDKITE_COMMIT}. Check ${git_log} under Artifacts tab for details."
       return 116
     elif [[ "${exit_code}" -ne 0 ]]; then
       log_info "Git returned unknown code:${exit_code}"
