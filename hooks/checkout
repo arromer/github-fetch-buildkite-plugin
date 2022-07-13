@@ -109,6 +109,34 @@ print_repo_dir() {
       | sed -e 's/.git$//' -e 's/\//__/g'
 }
 
+extract_archive() {
+  local file_path="${1}"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    extract_archive_on_macos "${file_path}"
+  else
+    extract_archive_on_linux "${file_path}"
+  fi
+}
+
+extract_archive_on_macos() {
+  local file_path="${1}"
+  tar -xf "${file_path}"
+}
+
+extract_archive_on_linux() {
+  local file_path="${1}"
+  local -a decompress_options
+  if [[ "${file_path}" == *".zst" ]]; then
+    # Decompress using zstd
+    decompress_options=("-I" "zstd")
+  else
+    # Auto-detect decompression options
+    decompress_options=()
+  fi
+
+  tar "${decompress_options[@]}" -xf "${file_path}"
+}
+
 copy_checkout_from_s3() {
   local repo_dir=$(print_repo_dir)
   local s3_url="${1}/${repo_dir}"
@@ -139,16 +167,7 @@ copy_checkout_from_s3() {
     aws s3 cp "${s3_url}/${checkout}" "${PWD}/${checkout}"
   fi
 
-  local -a decompress_options
-  if [[ "$(basename "${checkout}" ".zst")" != "${checkout}" ]]; then
-    # Decompress using zstd
-    decompress_options=("-I" "zstd")
-  else
-    # Auto-detect decompression options
-    decompress_options=()
-  fi
-
-  tar "${decompress_options[@]}" -xf "${PWD}/${checkout}"
+  extract_archive "${PWD}/${checkout}"
   rm "${PWD}/${checkout}"
   popd >/dev/null
 
