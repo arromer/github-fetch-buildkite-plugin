@@ -298,7 +298,7 @@ checkout() {
   # Check the current state to make sure we start from a clean working tree.
   # This does both "refresh the index and updating the cached stat information"
   # as per `man git-status` **BACKGROUND REFRESH**.
-  git status
+  git status --untracked-files=no
 
   git config remote.origin.fetch
 
