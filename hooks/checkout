@@ -252,6 +252,8 @@ checkout() {
       # do not use proxy for lfs
       git config remote.origin.lfsurl "${BUILDKITE_REPO}/info/lfs"
       git config remote.origin.lfspushurl "${BUILDKITE_REPO}/info/lfs"
+      # make sure http is not rewritten
+      git config --local url.http://github.com/Canva.insteadof http://github.com/Canva
     elif [[ "${BUILDKITE_REPO}" =~ ^http://.* ]]; then
       # BUILDKITE_REPO is in http protocol
       log_info "Using proxy: ${proxy_url}"
@@ -262,6 +264,8 @@ checkout() {
       git config remote.origin.pushurl "https://${BUILDKITE_REPO#http://}"
       git config remote.origin.lfsurl "https://${BUILDKITE_REPO#http://}/info/lfs"
       git config remote.origin.lfspushurl "https://${BUILDKITE_REPO#http://}/info/lfs"
+      # make sure http is not rewritten
+      git config --local url.http://github.com/Canva.insteadof http://github.com/Canva
     elif [[ "${proxy_url}" =~ ^https://.* ]]; then
       # BUILDKITE_REPO is in git protocol and proxy requires authentication
       # since we don't have the token, we can't use the proxy
@@ -283,6 +287,8 @@ checkout() {
       # see https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#guessing-the-server
       git config remote.origin.lfsurl "https://github.com/${BUILDKITE_REPO#*@github.com:}/info/lfs"
       git config remote.origin.lfspushurl "https://github.com/${BUILDKITE_REPO#*@github.com:}/info/lfs"
+      # make sure http is not rewritten
+      git config --local url.http://github.com/Canva.insteadof http://github.com/Canva
     fi
   else
     log_info "Not using proxy"
