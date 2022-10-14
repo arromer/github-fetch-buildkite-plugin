@@ -164,7 +164,7 @@ copy_checkout_from_s3() {
     signed_url="$(aws s3 presign --region us-east-1 "${s3_url}/${checkout}")"
     aria2c --max-connection-per-server=16 --split=16 "${signed_url}" --out="${checkout}"
   else
-    aws s3 cp "${s3_url}/${checkout}" "${PWD}/${checkout}"
+    aws s3 cp "${s3_url}/${checkout}" "${PWD}/${checkout}" --no-progress
   fi
 
   extract_archive "${PWD}/${checkout}"
