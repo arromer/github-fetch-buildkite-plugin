@@ -262,17 +262,24 @@ checkout() {
       git config remote.origin.url "${BUILDKITE_REPO}"
     elif [[ "${BUILDKITE_REPO}" =~ ^https://.* ]]; then
       # BUILDKITE_REPO is in https protocol
-      log_info "Using proxy: ${proxy_url}"
-      using_proxy=1
-      git config http."http://github.com/${BUILDKITE_REPO#*github.com/}".proxy "${proxy_url}"
-      # convert https to http for pull
-      git config remote.origin.url "http://${BUILDKITE_REPO#https://}"
-      git config remote.origin.pushurl "${BUILDKITE_REPO}"
-      # do not use proxy for lfs
-      git config remote.origin.lfsurl "${BUILDKITE_REPO}/info/lfs"
-      git config remote.origin.lfspushurl "${BUILDKITE_REPO}/info/lfs"
-      # make sure http is not rewritten
-      git config --local url.http://github.com/Canva.insteadof http://github.com/Canva
+      if git config --get-urlmatch credential.helper "http://${BUILDKITE_REPO#https://}" &> /dev/null; then
+        log_info "Using proxy: ${proxy_url}"
+        using_proxy=1
+        git config http."http://github.com/${BUILDKITE_REPO#*github.com/}".proxy "${proxy_url}"
+        # convert https to http for pull
+        git config remote.origin.url "http://${BUILDKITE_REPO#https://}"
+        git config remote.origin.pushurl "${BUILDKITE_REPO}"
+        # do not use proxy for lfs
+        git config remote.origin.lfsurl "${BUILDKITE_REPO}/info/lfs"
+        git config remote.origin.lfspushurl "${BUILDKITE_REPO}/info/lfs"
+        # make sure http is not rewritten
+        git config --local url.http://github.com/Canva.insteadof http://github.com/Canva
+      else
+        log_info "Not using proxy (no matching credential.helper)"
+        using_proxy=0
+        unset_proxy
+        git config remote.origin.url "${BUILDKITE_REPO}"
+      fi
     elif [[ "${BUILDKITE_REPO}" =~ ^http://.* ]]; then
       # BUILDKITE_REPO is in http protocol
       log_info "Using proxy: ${proxy_url}"
