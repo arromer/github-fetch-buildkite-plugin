@@ -31,7 +31,7 @@ The plugin accepts the following environment variables to configure its behaviou
 
 - `BUILDKITE_PLUGIN_GITHUB_FETCH_MAIN_REPO`:
     - Required: No
-    - Default: git@github.com:Canva/canva.git
+    - Default: "git@github.com:Canva/canva.git"
     - Description: The main repo to be checked out.
 
     **Note**: This parameter has no effect if `BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT` is undefined or
