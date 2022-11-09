@@ -29,6 +29,11 @@ The plugin accepts the following environment variables to configure its behaviou
     - Default: 110
     - Description: The exit code returned by the Buildkite step if any Git remote operation times out.
 
+- `BUILDKITE_PLUGIN_GITHUB_FETCH_MAIN_REPO`:
+    - Required: No
+    - Default: canva
+    - Description: The main repo to be checked out.
+
     **Note**: This parameter has no effect if `BUILDKITE_PLUGIN_GITHUB_FETCH_GIT_REMOTE_TIMEOUT` is undefined or
     set to `0`.
 
