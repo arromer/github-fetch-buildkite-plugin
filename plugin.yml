@@ -9,4 +9,6 @@ configuration:
       type: string
     use_https_repo_url:
       type: string
+    main_repo:
+      type: string
 public: true
