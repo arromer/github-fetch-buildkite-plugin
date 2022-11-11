@@ -120,6 +120,7 @@ main() {
     repo_dir="$(print_repo_checkout_path "${MAIN_REPO}")"
     export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${repo_dir}"
     export BUILDKITE_REPO="${MAIN_REPO}"
+    buildkite-agent meta-data set "MAIN_REPO" "${MAIN_REPO}"
   elif [[ -n "${SSM_PARAM:-}" ]]; then
     export_canva_origin_url
   else
