@@ -126,6 +126,8 @@ main() {
     log_info "ssm param not configured skipping"
   fi
 
+  buildkite-agent meta-data set "CHECKOUT_REPO" "${BUILDKITE_REPO}"
+
   # DEPRECATED (app ID and secret will be removed, only export plain HTTPS urls from else case in the future)
   if [[ -n "${GITHUB_APP_ID:-}" ]] && [[ -n "${GITHUB_APP_SECRET:-}" ]]; then
     export_legacy_https_repo
