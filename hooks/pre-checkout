@@ -120,12 +120,13 @@ main() {
     repo_dir="$(print_repo_checkout_path "${MAIN_REPO}")"
     export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${repo_dir}"
     export BUILDKITE_REPO="${MAIN_REPO}"
-    buildkite-agent meta-data set "MAIN_REPO" "${MAIN_REPO}"
   elif [[ -n "${SSM_PARAM:-}" ]]; then
     export_canva_origin_url
   else
     log_info "ssm param not configured skipping"
   fi
+
+  buildkite-agent meta-data set "CHECKOUT_REPO" "${BUILDKITE_REPO}"
 
   # DEPRECATED (app ID and secret will be removed, only export plain HTTPS urls from else case in the future)
   if [[ -n "${GITHUB_APP_ID:-}" ]] && [[ -n "${GITHUB_APP_SECRET:-}" ]]; then
