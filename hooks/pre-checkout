@@ -119,7 +119,7 @@ main() {
   if [[ -n "${MAIN_REPO:-}" ]]; then
     repo_dir="$(print_repo_checkout_path "${MAIN_REPO}")"
     
-    if [[ -v BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL && ! -z "${repo_dir}" ]]; then
+    if [[ -v BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL && -n "${repo_dir}" ]]; then
       export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${repo_dir}"
     fi
 
