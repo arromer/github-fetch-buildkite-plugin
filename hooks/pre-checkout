@@ -118,7 +118,11 @@ export_legacy_https_repo() {
 main() {
   if [[ -n "${MAIN_REPO:-}" ]]; then
     repo_dir="$(print_repo_checkout_path "${MAIN_REPO}")"
-    export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${repo_dir}"
+    
+    if [[ -v BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL && -n "${repo_dir}" ]]; then
+      export BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL="${BUILDKITE_PLUGIN_GITHUB_FETCH_S3_URL}/${repo_dir}"
+    fi
+
     export BUILDKITE_REPO="${MAIN_REPO}"
   elif [[ -n "${SSM_PARAM:-}" ]]; then
     export_canva_origin_url
