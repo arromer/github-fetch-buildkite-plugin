@@ -144,8 +144,6 @@ copy_checkout_from_s3() {
 
   log_info "Getting checkout from S3"
 
-  clean_checkout_dir
-
   # Find the most recent checkout in S3.
   checkout=$(aws s3 ls "${s3_url}/" \
       | (sort -r -k 4 || true) \
@@ -153,7 +151,8 @@ copy_checkout_from_s3() {
       | awk '{print $4}'
   )
 
-  pushd .. >/dev/null
+  cd ..
+  rm -rf "${repo_dir}"
 
   echo "copying checkout ${s3_url}/${checkout}"
   # Use aria2c download utility if available in the supplied AMI. It parallelize the download which
@@ -169,7 +168,7 @@ copy_checkout_from_s3() {
 
   extract_archive "${PWD}/${checkout}"
   rm "${PWD}/${checkout}"
-  popd >/dev/null
+  cd "${repo_dir}"
 
   log_info "Copying from S3 done"
 }
