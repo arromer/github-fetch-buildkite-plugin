@@ -2,6 +2,14 @@
 
 A [Buildkite](https://buildkite.com) plugin to fetch a branch from GitHub.
 
+<div align="center">
+
+# :warning: NOTE FOR CANVANAUTS :warning:
+
+**For internal usage in Canva, use https://github.com/Canva/github-fetch-buildkite-plugin instead.**
+
+</div>
+
 ## Buildkite Agent Requirements
 
 - [Git](https://git-scm.com/)
